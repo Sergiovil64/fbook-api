@@ -1,0 +1,11 @@
+# Node server
+server/node_modules
+server/dist
+server/src/generated/nest
+
+# Smithy build
+smithy/build
+
+# Environment variables
+.env
+server/.env

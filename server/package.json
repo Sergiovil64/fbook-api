@@ -1,0 +1,33 @@
+{
+  "name": "fbook-api-server",
+  "private": true,
+  "scripts": {
+    "build": "nest build -b tsc",
+    "start": "node dist/main.js",
+    "start:dev": "nest start --watch -b tsc",
+    "generate:types": "openapi-typescript ../smithy/build/smithy/source/openapi/ApiService.openapi.json -o src/generated/api.d.ts",
+    "generate:stubs:nest": "openapi-generator-cli generate -g typescript-nestjs-server -i ../smithy/build/smithy/source/openapi/ApiService.openapi.json -o src/generated/nest",
+    "generate": "npm run generate:types",
+    "generate:all": "npm run generate:types && npm run generate:stubs:nest",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push"
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.4.15",
+    "@nestjs/core": "^10.4.15",
+    "@nestjs/platform-express": "^10.4.15",
+    "@prisma/client": "^6.1.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^10.4.9",
+    "@openapitools/openapi-generator-cli": "^2.25.0",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "openapi-typescript": "^7.4.4",
+    "prisma": "^6.1.0",
+    "typescript": "^5.7.2"
+  }
+}
