@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/user-profiles": {
+    "/v1/user-profiles": {
         parameters: {
             query?: never;
             header?: never;
@@ -20,7 +20,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/user-profiles/{id}": {
+    "/v1/user-profiles/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -28,12 +28,12 @@ export interface paths {
             cookie?: never;
         };
         get: operations["GetUserProfile"];
-        put: operations["UpdateUserProfile"];
+        put?: never;
         post?: never;
         delete: operations["DeleteUserProfile"];
         options?: never;
         head?: never;
-        patch?: never;
+        patch: operations["UpdateUserProfile"];
         trace?: never;
     };
 }
@@ -137,6 +137,26 @@ export interface operations {
             };
         };
     };
+    DeleteUserProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description DeleteUserProfile 204 response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     UpdateUserProfile: {
         parameters: {
             query?: never;
@@ -160,26 +180,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["UserProfile"];
                 };
-            };
-        };
-    };
-    DeleteUserProfile: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description DeleteUserProfile 204 response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };
