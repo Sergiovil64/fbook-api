@@ -41,7 +41,7 @@ structure CreateUserProfileOutput {
 }
 
 @tags(["UserProfiles"])
-@http(method: "POST", uri: "/user-profiles", code: 201)
+@http(method: "POST", uri: "/v1/user-profiles", code: 201)
 operation CreateUserProfile {
     input: CreateUserProfileInput
     output: CreateUserProfileOutput
@@ -62,7 +62,7 @@ structure GetUserProfileOutput {
 
 @readonly
 @tags(["UserProfiles"])
-@http(method: "GET", uri: "/user-profiles/{id}", code: 200)
+@http(method: "GET", uri: "/v1/user-profiles/{id}", code: 200)
 operation GetUserProfile {
     input: GetUserProfileInput
     output: GetUserProfileOutput
@@ -87,7 +87,7 @@ structure UpdateUserProfileOutput {
 
 @idempotent
 @tags(["UserProfiles"])
-@http(method: "PUT", uri: "/user-profiles/{id}", code: 200)
+@http(method: "PUT", uri: "/v1/user-profiles/{id}", code: 200)
 operation UpdateUserProfile {
     input: UpdateUserProfileInput
     output: UpdateUserProfileOutput
@@ -103,7 +103,7 @@ structure DeleteUserProfileInput {
 
 @idempotent
 @tags(["UserProfiles"])
-@http(method: "DELETE", uri: "/user-profiles/{id}", code: 204)
+@http(method: "DELETE", uri: "/v1/user-profiles/{id}", code: 204)
 operation DeleteUserProfile {
     input: DeleteUserProfileInput
     output: Unit
@@ -127,7 +127,7 @@ structure ListUserProfilesOutput {
 
 @readonly
 @tags(["UserProfiles"])
-@http(method: "GET", uri: "/user-profiles", code: 200)
+@http(method: "GET", uri: "/v1/user-profiles", code: 200)
 operation ListUserProfiles {
     input: ListUserProfilesInput
     output: ListUserProfilesOutput

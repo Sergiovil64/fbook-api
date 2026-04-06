@@ -5,7 +5,6 @@
  * - Pagination (skip / take): https://www.prisma.io/docs/orm/prisma-client/queries/pagination
  */
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import type {
   CreateUserProfileRequestContent,
   ListUserProfilesResponseContent,
@@ -55,7 +54,7 @@ export class UserProfilesService {
       return toUserProfileDto(row);
     } catch (e) {
       // P2025: "An operation failed because it depends on one or more records that were required but not found."
-      if (e instanceof PrismaClientKnownRequestError && e.code === 'P2025') {
+      if (e && typeof e === 'object' && 'code' in e && e.code === 'P2025') {
         throw new NotFoundException(`UserProfile not found: ${id}`);
       }
       throw e;
@@ -66,7 +65,7 @@ export class UserProfilesService {
     try {
       await this.prisma.userProfile.delete({ where: { id } });
     } catch (e) {
-      if (e instanceof PrismaClientKnownRequestError && e.code === 'P2025') {
+      if (e && typeof e === 'object' && 'code' in e && e.code === 'P2025') {
         throw new NotFoundException(`UserProfile not found: ${id}`);
       }
       throw e;
