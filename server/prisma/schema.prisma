@@ -7,11 +7,76 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model UserProfile {
-  id          String   @id @default(uuid())
-  displayName String
-  email       String   @unique
-  bio         String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model Usuario {
+  idUsuario     Int      @id @default(autoincrement()) @map("id_usuario")
+  nombre        String   @db.VarChar(30)
+  correo        String   @unique @db.VarChar(40)
+  password      String   @db.VarChar(300)
+  fechaRegistro DateTime @default(now()) @db.Date @map("fecha_registro")
+
+  amistades1    Amistad[]    @relation("Usuario1")
+  amistades2    Amistad[]    @relation("Usuario2")
+  publicaciones Publicacion[]
+  comentarios   Comentario[]
+  reacciones    Reaccion[]
+
+  @@map("usuario")
+}
+
+model Amistad {
+  idAmistad  Int    @id @default(autoincrement()) @map("id_amistad")
+  idUsuario1 Int    @map("id_usuario1")
+  idUsuario2 Int    @map("id_usuario2")
+  estado     String @db.VarChar(20)
+
+  usuario1 Usuario @relation("Usuario1", fields: [idUsuario1], references: [idUsuario])
+  usuario2 Usuario @relation("Usuario2", fields: [idUsuario2], references: [idUsuario])
+
+  @@map("amistad")
+}
+
+model Publicacion {
+  idPublicacion Int      @id @default(autoincrement()) @map("id_publicacion")
+  idUsuario     Int      @map("id_usuario")
+  contenido     String   @db.VarChar(300)
+  fecha         DateTime @default(now()) @db.Date
+
+  usuario     Usuario      @relation(fields: [idUsuario], references: [idUsuario])
+  comentarios Comentario[]
+  reacciones  Reaccion[]
+
+  @@map("publicacion")
+}
+
+model Comentario {
+  idComentario  Int      @id @default(autoincrement()) @map("id_comentario")
+  idPublicacion Int      @map("id_publicacion")
+  idUsuario     Int      @map("id_usuario")
+  texto         String   @db.VarChar(300)
+  fComentario   DateTime @default(now()) @db.Date @map("f_comentario")
+
+  publicacion Publicacion @relation(fields: [idPublicacion], references: [idPublicacion])
+  usuario     Usuario     @relation(fields: [idUsuario], references: [idUsuario])
+
+  @@map("comentario")
+}
+
+model Reaccion {
+  idReaccion    Int      @id @default(autoincrement()) @map("id_reaccion")
+  idPublicacion Int      @map("id_publicacion")
+  idUsuario     Int      @map("id_usuario")
+  meGusta       Boolean  @map("me_gusta")
+  meEncanta     Boolean  @map("me_encanta")
+  meImporta     Boolean  @map("me_importa")
+  meDivierte    Boolean  @map("me_divierte")
+  meAsombra     Boolean  @map("me_asombra")
+  meEntristece  Boolean  @map("me_entristece")
+  meEnoja       Boolean  @map("me_enoja")
+  fPublicacion  DateTime @default(now()) @db.Date @map("f_publicacion")
+  estado        String   @db.VarChar(20)
+
+  publicacion Publicacion @relation(fields: [idPublicacion], references: [idPublicacion])
+  usuario     Usuario     @relation(fields: [idUsuario], references: [idUsuario])
+
+  @@map("reaccion")
 }
