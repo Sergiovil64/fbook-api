@@ -27,13 +27,13 @@ services:
     volumes:
       - dynamodb_publicacion_data:/data
 
-  # ── Microservicios NestJS ─────────────────────────────────────────────────────
+  # ── Microservicios NestJS (desarrollo con hot-reload) ─────────────────────────
   service-usuario:
     build:
       context: .
       dockerfile: services/usuario/Dockerfile
-      target: production
-    container_name: fbook-service-usuario
+      target: development
+    container_name: fbook-service-usuario-dev
     ports:
       - "3001:3000"
     environment:
@@ -42,6 +42,9 @@ services:
       AWS_REGION: us-east-1
       AWS_ACCESS_KEY_ID: local
       AWS_SECRET_ACCESS_KEY: local
+    volumes:
+      - ./services/usuario/src:/fbook_api/services/usuario/src
+      - ./smithy_api/generated:/fbook_api/smithy_api/generated
     depends_on:
       - dynamodb-usuario
 
@@ -49,8 +52,8 @@ services:
     build:
       context: .
       dockerfile: services/amistad/Dockerfile
-      target: production
-    container_name: fbook-service-amistad
+      target: development
+    container_name: fbook-service-amistad-dev
     ports:
       - "3002:3000"
     environment:
@@ -59,6 +62,9 @@ services:
       AWS_REGION: us-east-1
       AWS_ACCESS_KEY_ID: local
       AWS_SECRET_ACCESS_KEY: local
+    volumes:
+      - ./services/amistad/src:/fbook_api/services/amistad/src
+      - ./smithy_api/generated:/fbook_api/smithy_api/generated
     depends_on:
       - dynamodb-amistad
 
@@ -66,8 +72,8 @@ services:
     build:
       context: .
       dockerfile: services/publicacion/Dockerfile
-      target: production
-    container_name: fbook-service-publicacion
+      target: development
+    container_name: fbook-service-publicacion-dev
     ports:
       - "3003:3000"
     environment:
@@ -76,6 +82,9 @@ services:
       AWS_REGION: us-east-1
       AWS_ACCESS_KEY_ID: local
       AWS_SECRET_ACCESS_KEY: local
+    volumes:
+      - ./services/publicacion/src:/fbook_api/services/publicacion/src
+      - ./smithy_api/generated:/fbook_api/smithy_api/generated
     depends_on:
       - dynamodb-publicacion
 

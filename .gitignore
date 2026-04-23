@@ -1,11 +1,27 @@
-# Node server
-server/node_modules
-server/dist
-server/src/generated/nest
-
-# Smithy build
-smithy/build
-
-# Environment variables
+# ── Variables de entorno 
 .env
+**/.env
+
+# Smithy 
+smithy_api/build/
+smithy_api/node_modules/
+
+# Servicios NestJS 
+services/**/node_modules/
+services/**/dist/
+services/**/*.tsbuildinfo
+
+# Server (legacy) 
+server/node_modules/
+server/dist/
+server/src/generated/nest/
 server/.env
+
+#  OS / Editor 
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Docker 
+docker-data/
