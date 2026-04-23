@@ -1,0 +1,12 @@
+{
+  "name": "fbook-smithy-api",
+  "private": true,
+  "scripts": {
+    "build": "smithy build",
+    "generate": "openapi-typescript build/smithy/source/openapi/ApiService.openapi.json -o generated/api.d.ts",
+    "build:generate": "smithy build && npm run generate"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0"
+  }
+}
