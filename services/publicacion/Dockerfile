@@ -17,6 +17,8 @@ EXPOSE 3000
 CMD ["node", "dist/main.js"]
 
 FROM deps AS development
+COPY services/publicacion/tsconfig.json ./
+COPY services/publicacion/nest-cli.json ./
 COPY smithy_api/generated/ /fbook_api/smithy_api/generated/
 EXPOSE 3000
 CMD ["npm", "run", "start:dev"]

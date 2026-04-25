@@ -5,27 +5,21 @@ services:
     container_name: fbook-dynamodb-usuario
     ports:
       - "8001:8000"
-    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /data"
-    volumes:
-      - dynamodb_usuario_data:/data
+    command: "-jar DynamoDBLocal.jar -inMemory"
 
   dynamodb-amistad:
     image: amazon/dynamodb-local:latest
     container_name: fbook-dynamodb-amistad
     ports:
       - "8002:8000"
-    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /data"
-    volumes:
-      - dynamodb_amistad_data:/data
+    command: "-jar DynamoDBLocal.jar -inMemory"
 
   dynamodb-publicacion:
     image: amazon/dynamodb-local:latest
     container_name: fbook-dynamodb-publicacion
     ports:
       - "8003:8000"
-    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /data"
-    volumes:
-      - dynamodb_publicacion_data:/data
+    command: "-jar DynamoDBLocal.jar -inMemory"
 
   # ── Microservicios NestJS (desarrollo con hot-reload) ─────────────────────────
   service-usuario:
@@ -42,6 +36,7 @@ services:
       AWS_REGION: us-east-1
       AWS_ACCESS_KEY_ID: local
       AWS_SECRET_ACCESS_KEY: local
+      TABLE_NAME: Usuarios
     volumes:
       - ./services/usuario/src:/fbook_api/services/usuario/src
       - ./smithy_api/generated:/fbook_api/smithy_api/generated
@@ -62,6 +57,7 @@ services:
       AWS_REGION: us-east-1
       AWS_ACCESS_KEY_ID: local
       AWS_SECRET_ACCESS_KEY: local
+      TABLE_NAME: Amistades
     volumes:
       - ./services/amistad/src:/fbook_api/services/amistad/src
       - ./smithy_api/generated:/fbook_api/smithy_api/generated
@@ -82,6 +78,9 @@ services:
       AWS_REGION: us-east-1
       AWS_ACCESS_KEY_ID: local
       AWS_SECRET_ACCESS_KEY: local
+      TABLE_NAME: Publicaciones
+      TABLE_COMENTARIOS: Comentarios
+      TABLE_REACCIONES: Reacciones
     volumes:
       - ./services/publicacion/src:/fbook_api/services/publicacion/src
       - ./smithy_api/generated:/fbook_api/smithy_api/generated
