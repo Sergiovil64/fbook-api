@@ -17,11 +17,11 @@ structure Amistad {
 
     @documentation("ID del primer usuario en la relación.")
     @required
-    idUsuario1: Integer
+    idUsuario1: String
 
     @documentation("ID del segundo usuario en la relación.")
     @required
-    idUsuario2: Integer
+    idUsuario2: String
 
     @documentation("Estado de la amistad (ej: pendiente, aceptada, rechazada). Máximo 20 caracteres.")
     @required
@@ -39,11 +39,11 @@ list AmistadList {
 structure CreateAmistadInput {
     @documentation("ID del primer usuario en la relación.")
     @required
-    idUsuario1: Integer
+    idUsuario1: String
 
     @documentation("ID del segundo usuario en la relación.")
     @required
-    idUsuario2: Integer
+    idUsuario2: String
 
     @documentation("Estado inicial de la amistad. Máximo 20 caracteres.")
     @required

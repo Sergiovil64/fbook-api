@@ -17,11 +17,11 @@ structure Reaccion {
 
     @documentation("ID de la publicación a la que pertenece la reacción.")
     @required
-    idPublicacion: Integer
+    idPublicacion: String
 
     @documentation("ID del usuario que reaccionó.")
     @required
-    idUsuario: Integer
+    idUsuario: String
 
     @documentation("Indica si el usuario reaccionó con 'Me gusta'.")
     @required
@@ -71,11 +71,11 @@ list ReaccionList {
 structure CreateReaccionInput {
     @documentation("ID de la publicación a reaccionar.")
     @required
-    idPublicacion: Integer
+    idPublicacion: String
 
     @documentation("ID del usuario que reacciona.")
     @required
-    idUsuario: Integer
+    idUsuario: String
 
     @documentation("Indica si el usuario reacciona con 'Me gusta'.")
     @required

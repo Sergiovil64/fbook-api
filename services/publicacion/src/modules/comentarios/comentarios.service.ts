@@ -114,7 +114,7 @@ export class ComentariosService implements OnModuleInit {
     };
   }
 
-  private async validateUsuarioExists(idUsuario: number): Promise<void> {
+  private async validateUsuarioExists(idUsuario: string): Promise<void> {
     try {
       await firstValueFrom(
         this.httpService.get(`${USUARIO_SERVICE_URL}/v1/usuarios/${idUsuario}`),
@@ -127,7 +127,7 @@ export class ComentariosService implements OnModuleInit {
     }
   }
 
-  private async validatePublicacionExists(idPublicacion: number): Promise<void> {
+  private async validatePublicacionExists(idPublicacion: string): Promise<void> {
     try {
       await firstValueFrom(
         this.httpService.get(`${PUBLICACION_SERVICE_URL}/v1/publicaciones/${idPublicacion}`),

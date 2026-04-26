@@ -112,7 +112,7 @@ export class AmistadesService implements OnModuleInit {
     };
   }
 
-  private async validateUsuarioExists(idUsuario: number): Promise<void> {
+  private async validateUsuarioExists(idUsuario: string): Promise<void> {
     try {
       await firstValueFrom(
         this.httpService.get(`${USUARIO_SERVICE_URL}/v1/usuarios/${idUsuario}`),

@@ -198,9 +198,9 @@ export interface components {
             /** @description Identificador único de la amistad. */
             id: string;
             /** @description ID del primer usuario en la relación. */
-            idUsuario1: number;
+            idUsuario1: string;
             /** @description ID del segundo usuario en la relación. */
-            idUsuario2: number;
+            idUsuario2: string;
             /** @description Estado de la amistad (ej: pendiente, aceptada, rechazada). Máximo 20 caracteres. */
             estado: string;
         };
@@ -209,9 +209,9 @@ export interface components {
             /** @description Identificador único del comentario. */
             id: string;
             /** @description ID de la publicación a la que pertenece el comentario. */
-            idPublicacion: number;
+            idPublicacion: string;
             /** @description ID del usuario autor del comentario. */
-            idUsuario: number;
+            idUsuario: string;
             /** @description Texto del comentario. Máximo 300 caracteres. */
             texto: string;
             /**
@@ -227,34 +227,34 @@ export interface components {
         /** @description Datos requeridos para crear una nueva amistad. */
         CreateAmistadRequestContent: {
             /** @description ID del primer usuario en la relación. */
-            idUsuario1: number;
+            idUsuario1: string;
             /** @description ID del segundo usuario en la relación. */
-            idUsuario2: number;
+            idUsuario2: string;
             /** @description Estado inicial de la amistad. Máximo 20 caracteres. */
             estado: string;
         };
         /** @description Datos requeridos para crear un nuevo comentario. */
         CreateComentarioRequestContent: {
             /** @description ID de la publicación a comentar. */
-            idPublicacion: number;
-            /** @description ID del usuario que realiza el comentario. */
-            idUsuario: number;
+            idPublicacion: string;
+            /** @description ID del usuario que escribió el comentario. */
+            idUsuario: string;
             /** @description Texto del comentario. Máximo 300 caracteres. */
             texto: string;
         };
         /** @description Datos requeridos para crear una nueva publicación. */
         CreatePublicacionRequestContent: {
             /** @description ID del usuario que realiza la publicación. */
-            idUsuario: number;
+            idUsuario: string;
             /** @description Contenido de la publicación. Máximo 300 caracteres. */
             contenido: string;
         };
         /** @description Datos requeridos para registrar una reacción a una publicación. */
         CreateReaccionRequestContent: {
             /** @description ID de la publicación a reaccionar. */
-            idPublicacion: number;
+            idPublicacion: string;
             /** @description ID del usuario que reacciona. */
-            idUsuario: number;
+            idUsuario: string;
             /** @description Indica si el usuario reacciona con 'Me gusta'. */
             meGusta: boolean;
             /** @description Indica si el usuario reacciona con 'Me encanta'. */
@@ -314,7 +314,7 @@ export interface components {
             /** @description Identificador único de la publicación. */
             id: string;
             /** @description ID del usuario autor de la publicación. */
-            idUsuario: number;
+            idUsuario: string;
             /** @description Contenido de la publicación. Máximo 300 caracteres. */
             contenido: string;
             /**
@@ -328,9 +328,9 @@ export interface components {
             /** @description Identificador único de la reacción. */
             id: string;
             /** @description ID de la publicación a la que pertenece la reacción. */
-            idPublicacion: number;
+            idPublicacion: string;
             /** @description ID del usuario que reaccionó. */
-            idUsuario: number;
+            idUsuario: string;
             /** @description Indica si el usuario reaccionó con 'Me gusta'. */
             meGusta: boolean;
             /** @description Indica si el usuario reaccionó con 'Me encanta'. */
