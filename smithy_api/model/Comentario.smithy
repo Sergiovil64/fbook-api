@@ -8,20 +8,26 @@ use com.fbook.errors#InternalServerError
 
 integer ComentarioId
 
+@documentation("Representa un comentario realizado en una publicación.")
 structure Comentario {
+    @documentation("Identificador único del comentario.")
     @required
     id: ComentarioId
 
+    @documentation("ID de la publicación a la que pertenece el comentario.")
     @required
     idPublicacion: Integer
 
+    @documentation("ID del usuario autor del comentario.")
     @required
     idUsuario: Integer
 
+    @documentation("Texto del comentario. Máximo 300 caracteres.")
     @required
     @length(max: 300)
     texto: String
 
+    @documentation("Fecha y hora en que se realizó el comentario.")
     @required
     fComentario: Timestamp
 }
@@ -32,13 +38,17 @@ list ComentarioList {
 
 // Create Comentario
 
+@documentation("Datos requeridos para crear un nuevo comentario.")
 structure CreateComentarioInput {
+    @documentation("ID de la publicación a comentar.")
     @required
     idPublicacion: Integer
 
+    @documentation("ID del usuario que realiza el comentario.")
     @required
     idUsuario: Integer
 
+    @documentation("Texto del comentario. Máximo 300 caracteres.")
     @required
     @length(max: 300)
     texto: String
@@ -49,6 +59,7 @@ structure CreateComentarioOutput {
     comentario: Comentario
 }
 
+@documentation("Crea un nuevo comentario en una publicación.")
 @tags(["Comentarios"])
 @http(method: "POST", uri: "/v1/comentarios", code: 201)
 operation CreateComentario {
@@ -70,6 +81,7 @@ structure GetComentarioOutput {
     comentario: Comentario
 }
 
+@documentation("Obtiene los datos de un comentario por su ID.")
 @readonly
 @tags(["Comentarios"])
 @http(method: "GET", uri: "/v1/comentarios/{id}", code: 200)
@@ -95,6 +107,7 @@ structure UpdateComentarioOutput {
     comentario: Comentario
 }
 
+@documentation("Actualiza el texto de un comentario existente.")
 @idempotent
 @tags(["Comentarios"])
 @http(method: "PUT", uri: "/v1/comentarios/{id}", code: 200)
@@ -112,6 +125,7 @@ structure DeleteComentarioInput {
     id: ComentarioId
 }
 
+@documentation("Elimina un comentario por su ID.")
 @idempotent
 @tags(["Comentarios"])
 @http(method: "DELETE", uri: "/v1/comentarios/{id}", code: 204)
@@ -137,6 +151,7 @@ structure ListComentarioOutput {
     nextToken: String
 }
 
+@documentation("Lista todos los comentarios con soporte de paginación.")
 @readonly
 @tags(["Comentarios"])
 @http(method: "GET", uri: "/v1/comentarios", code: 200)

@@ -11,8 +11,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Lista todas las amistades con soporte de paginación. */
         get: operations["ListAmistades"];
         put?: never;
+        /** @description Crea una nueva relación de amistad entre dos usuarios. */
         post: operations["CreateAmistad"];
         delete?: never;
         options?: never;
@@ -27,9 +29,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Obtiene los datos de una amistad por su ID. */
         get: operations["GetAmistad"];
+        /** @description Actualiza el estado de una amistad existente. */
         put: operations["UpdateAmistad"];
         post?: never;
+        /** @description Elimina una amistad por su ID. */
         delete: operations["DeleteAmistad"];
         options?: never;
         head?: never;
@@ -43,8 +48,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Lista todos los comentarios con soporte de paginación. */
         get: operations["ListComentarios"];
         put?: never;
+        /** @description Crea un nuevo comentario en una publicación. */
         post: operations["CreateComentario"];
         delete?: never;
         options?: never;
@@ -59,9 +66,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Obtiene los datos de un comentario por su ID. */
         get: operations["GetComentario"];
+        /** @description Actualiza el texto de un comentario existente. */
         put: operations["UpdateComentario"];
         post?: never;
+        /** @description Elimina un comentario por su ID. */
         delete: operations["DeleteComentario"];
         options?: never;
         head?: never;
@@ -75,8 +85,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Lista todas las publicaciones con soporte de paginación. */
         get: operations["ListPublicaciones"];
         put?: never;
+        /** @description Crea una nueva publicación en la plataforma. */
         post: operations["CreatePublicacion"];
         delete?: never;
         options?: never;
@@ -91,9 +103,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Obtiene los datos de una publicación por su ID. */
         get: operations["GetPublicacion"];
+        /** @description Actualiza el contenido de una publicación existente. */
         put: operations["UpdatePublicacion"];
         post?: never;
+        /** @description Elimina una publicación por su ID. */
         delete: operations["DeletePublicacion"];
         options?: never;
         head?: never;
@@ -107,8 +122,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Lista todas las reacciones con soporte de paginación. */
         get: operations["ListReacciones"];
         put?: never;
+        /** @description Registra una nueva reacción de un usuario ante una publicación. */
         post: operations["CreateReaccion"];
         delete?: never;
         options?: never;
@@ -123,9 +140,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Obtiene los datos de una reacción por su ID. */
         get: operations["GetReaccion"];
+        /** @description Actualiza las reacciones de un registro existente. */
         put: operations["UpdateReaccion"];
         post?: never;
+        /** @description Elimina una reacción por su ID. */
         delete: operations["DeleteReaccion"];
         options?: never;
         head?: never;
@@ -139,8 +159,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Lista todos los usuarios registrados con soporte de paginación. */
         get: operations["ListUsuarios"];
         put?: never;
+        /** @description Crea un nuevo usuario en la plataforma. */
         post: operations["CreateUsuario"];
         delete?: never;
         options?: never;
@@ -155,9 +177,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Obtiene los datos de un usuario por su ID. */
         get: operations["GetUsuario"];
+        /** @description Actualiza los datos de un usuario existente. */
         put: operations["UpdateUsuario"];
         post?: never;
+        /** @description Elimina un usuario de la plataforma por su ID. */
         delete: operations["DeleteUsuario"];
         options?: never;
         head?: never;
@@ -168,53 +193,92 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Representa una relación de amistad entre dos usuarios. */
         Amistad: {
+            /** @description Identificador único de la amistad. */
             id: number;
+            /** @description ID del primer usuario en la relación. */
             idUsuario1: number;
+            /** @description ID del segundo usuario en la relación. */
             idUsuario2: number;
+            /** @description Estado de la amistad (ej: pendiente, aceptada, rechazada). Máximo 20 caracteres. */
             estado: string;
         };
+        /** @description Representa un comentario realizado en una publicación. */
         Comentario: {
+            /** @description Identificador único del comentario. */
             id: number;
+            /** @description ID de la publicación a la que pertenece el comentario. */
             idPublicacion: number;
+            /** @description ID del usuario autor del comentario. */
             idUsuario: number;
+            /** @description Texto del comentario. Máximo 300 caracteres. */
             texto: string;
-            /** Format: double */
+            /**
+             * Format: double
+             * @description Fecha y hora en que se realizó el comentario.
+             */
             fComentario: number;
         };
         /** @description 409 — unique constraint violated (e.g. correo duplicado) */
         ConflictExceptionResponseContent: {
             message: string;
         };
+        /** @description Datos requeridos para crear una nueva amistad. */
         CreateAmistadRequestContent: {
+            /** @description ID del primer usuario en la relación. */
             idUsuario1: number;
+            /** @description ID del segundo usuario en la relación. */
             idUsuario2: number;
+            /** @description Estado inicial de la amistad. Máximo 20 caracteres. */
             estado: string;
         };
+        /** @description Datos requeridos para crear un nuevo comentario. */
         CreateComentarioRequestContent: {
+            /** @description ID de la publicación a comentar. */
             idPublicacion: number;
+            /** @description ID del usuario que realiza el comentario. */
             idUsuario: number;
+            /** @description Texto del comentario. Máximo 300 caracteres. */
             texto: string;
         };
+        /** @description Datos requeridos para crear una nueva publicación. */
         CreatePublicacionRequestContent: {
+            /** @description ID del usuario que realiza la publicación. */
             idUsuario: number;
+            /** @description Contenido de la publicación. Máximo 300 caracteres. */
             contenido: string;
         };
+        /** @description Datos requeridos para registrar una reacción a una publicación. */
         CreateReaccionRequestContent: {
+            /** @description ID de la publicación a reaccionar. */
             idPublicacion: number;
+            /** @description ID del usuario que reacciona. */
             idUsuario: number;
+            /** @description Indica si el usuario reacciona con 'Me gusta'. */
             meGusta: boolean;
+            /** @description Indica si el usuario reacciona con 'Me encanta'. */
             meEncanta: boolean;
+            /** @description Indica si el usuario reacciona con 'Me importa'. */
             meImporta: boolean;
+            /** @description Indica si el usuario reacciona con 'Me divierte'. */
             meDivierte: boolean;
+            /** @description Indica si el usuario reacciona con 'Me asombra'. */
             meAsombra: boolean;
+            /** @description Indica si el usuario reacciona con 'Me entristece'. */
             meEntristece: boolean;
+            /** @description Indica si el usuario reacciona con 'Me enoja'. */
             meEnoja: boolean;
+            /** @description Estado de la reacción. Máximo 20 caracteres. */
             estado: string;
         };
+        /** @description Datos requeridos para crear un nuevo usuario. */
         CreateUsuarioRequestContent: {
+            /** @description Nombre completo del usuario. Máximo 30 caracteres. */
             nombre: string;
+            /** @description Correo electrónico único del usuario. Máximo 40 caracteres. */
             correo: string;
+            /** @description Contraseña del usuario. Máximo 300 caracteres. */
             password: string;
         };
         /** @description 500 — unexpected server-side failure */
@@ -245,26 +309,48 @@ export interface components {
         NotFoundExceptionResponseContent: {
             message: string;
         };
+        /** @description Representa una publicación realizada por un usuario. */
         Publicacion: {
+            /** @description Identificador único de la publicación. */
             id: number;
+            /** @description ID del usuario autor de la publicación. */
             idUsuario: number;
+            /** @description Contenido de la publicación. Máximo 300 caracteres. */
             contenido: string;
-            /** Format: double */
+            /**
+             * Format: double
+             * @description Fecha y hora en que se realizó la publicación.
+             */
             fecha: number;
         };
+        /** @description Representa la reacción de un usuario ante una publicación. */
         Reaccion: {
+            /** @description Identificador único de la reacción. */
             id: number;
+            /** @description ID de la publicación a la que pertenece la reacción. */
             idPublicacion: number;
+            /** @description ID del usuario que reaccionó. */
             idUsuario: number;
+            /** @description Indica si el usuario reaccionó con 'Me gusta'. */
             meGusta: boolean;
+            /** @description Indica si el usuario reaccionó con 'Me encanta'. */
             meEncanta: boolean;
+            /** @description Indica si el usuario reaccionó con 'Me importa'. */
             meImporta: boolean;
+            /** @description Indica si el usuario reaccionó con 'Me divierte'. */
             meDivierte: boolean;
+            /** @description Indica si el usuario reaccionó con 'Me asombra'. */
             meAsombra: boolean;
+            /** @description Indica si el usuario reaccionó con 'Me entristece'. */
             meEntristece: boolean;
+            /** @description Indica si el usuario reaccionó con 'Me enoja'. */
             meEnoja: boolean;
-            /** Format: double */
+            /**
+             * Format: double
+             * @description Fecha y hora de la publicación asociada.
+             */
             fPublicacion: number;
+            /** @description Estado de la reacción. Máximo 20 caracteres. */
             estado: string;
         };
         UpdateAmistadRequestContent: {
@@ -286,17 +372,29 @@ export interface components {
             meEnoja?: boolean;
             estado?: string;
         };
+        /** @description Datos opcionales para actualizar un usuario existente. */
         UpdateUsuarioRequestContent: {
+            /** @description Nuevo nombre del usuario. Máximo 30 caracteres. */
             nombre?: string;
+            /** @description Nuevo correo electrónico del usuario. Máximo 40 caracteres. */
             correo?: string;
+            /** @description Nueva contraseña del usuario. Máximo 300 caracteres. */
             password?: string;
         };
+        /** @description Representa un usuario registrado en la plataforma. */
         Usuario: {
+            /** @description Identificador único del usuario. */
             id: number;
+            /** @description Nombre completo del usuario. Máximo 30 caracteres. */
             nombre: string;
+            /** @description Correo electrónico único del usuario. Máximo 40 caracteres. */
             correo: string;
+            /** @description Contraseña del usuario. Máximo 300 caracteres. */
             password?: string;
-            /** Format: double */
+            /**
+             * Format: double
+             * @description Fecha y hora de registro del usuario.
+             */
             fechaRegistro?: number;
         };
         /** @description 400 — input validation failed */
@@ -1278,6 +1376,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Identificador del usuario a actualizar. */
                 id: number;
             };
             cookie?: never;

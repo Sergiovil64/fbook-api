@@ -1,56 +1,126 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { Injectable, Inject, NotFoundException, BadRequestException, OnModuleInit } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+  UpdateCommand,
+  DeleteCommand,
+  ScanCommand,
+} from '@aws-sdk/lib-dynamodb';
+import { CreateTableCommand, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import type { components } from '@api';
+
+const USUARIO_SERVICE_URL = process.env.USUARIO_SERVICE_URL ?? 'http://localhost:3001';
 
 type Amistad = components['schemas']['Amistad'];
 type CreateInput = components['schemas']['CreateAmistadRequestContent'];
 type UpdateInput = components['schemas']['UpdateAmistadRequestContent'];
 type ListOutput = components['schemas']['ListAmistadesResponseContent'];
 
+const TABLE = process.env.TABLE_NAME ?? 'Amistades';
+
 @Injectable()
-export class AmistadesService {
+export class AmistadesService implements OnModuleInit {
   constructor(
     @Inject('DYNAMODB_CLIENT') private readonly dynamoClient: DynamoDBDocumentClient,
+    private readonly httpService: HttpService,
   ) {}
 
-  create(body: CreateInput): Amistad {
-    return {
-      id: 1,
+  async onModuleInit() {
+    try {
+      await this.dynamoClient.send(new DescribeTableCommand({ TableName: TABLE }));
+    } catch (err: any) {
+      if (err?.name === 'ResourceNotFoundException') {
+        await this.dynamoClient.send(
+          new CreateTableCommand({
+            TableName: TABLE,
+            AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'N' }],
+            KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+            BillingMode: 'PAY_PER_REQUEST',
+          }),
+        );
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  async create(body: CreateInput): Promise<Amistad> {
+    await Promise.all([
+      this.validateUsuarioExists(body.idUsuario1),
+      this.validateUsuarioExists(body.idUsuario2),
+    ]);
+
+    const item: Amistad = {
+      id: Date.now(),
       idUsuario1: body.idUsuario1,
       idUsuario2: body.idUsuario2,
       estado: body.estado,
     };
+    await this.dynamoClient.send(new PutCommand({ TableName: TABLE, Item: item }));
+    return item;
   }
 
-  findOne(id: number): Amistad {
+  async findOne(id: number): Promise<Amistad> {
+    const result = await this.dynamoClient.send(
+      new GetCommand({ TableName: TABLE, Key: { id } }),
+    );
+    if (!result.Item) {
+      throw new NotFoundException(`Amistad con id ${id} no encontrada`);
+    }
+    return result.Item as Amistad;
+  }
+
+  async update(id: number, body: UpdateInput): Promise<Amistad> {
+    await this.findOne(id);
+    const result = await this.dynamoClient.send(
+      new UpdateCommand({
+        TableName: TABLE,
+        Key: { id },
+        UpdateExpression: 'SET #estado = :estado',
+        ExpressionAttributeNames: { '#estado': 'estado' },
+        ExpressionAttributeValues: { ':estado': body.estado },
+        ReturnValues: 'ALL_NEW',
+      }),
+    );
+    return result.Attributes as Amistad;
+  }
+
+  async remove(id: number): Promise<void> {
+    await this.findOne(id);
+    await this.dynamoClient.send(new DeleteCommand({ TableName: TABLE, Key: { id } }));
+  }
+
+  async findAll(nextToken?: string, maxResults?: number): Promise<ListOutput> {
+    const result = await this.dynamoClient.send(
+      new ScanCommand({
+        TableName: TABLE,
+        Limit: maxResults ? Number(maxResults) : undefined,
+        ExclusiveStartKey: nextToken
+          ? JSON.parse(Buffer.from(nextToken, 'base64').toString('utf-8'))
+          : undefined,
+      }),
+    );
     return {
-      id,
-      idUsuario1: 1,
-      idUsuario2: 2,
-      estado: 'pendiente',
+      items: (result.Items ?? []) as Amistad[],
+      nextToken: result.LastEvaluatedKey
+        ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64')
+        : undefined,
     };
   }
 
-  update(id: number, body: UpdateInput): Amistad {
-    return {
-      id,
-      idUsuario1: 1,
-      idUsuario2: 2,
-      estado: body.estado ?? 'pendiente',
-    };
-  }
-
-  remove(id: number): void {
-    // stub — sin BD aún
-  }
-
-  findAll(nextToken?: string, maxResults?: number): ListOutput {
-    return {
-      items: [
-        { id: 1, idUsuario1: 1, idUsuario2: 2, estado: 'aceptada' },
-        { id: 2, idUsuario1: 1, idUsuario2: 3, estado: 'pendiente' },
-      ],
-      nextToken: undefined,
-    };
+  private async validateUsuarioExists(idUsuario: number): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.httpService.get(`${USUARIO_SERVICE_URL}/v1/usuarios/${idUsuario}`),
+      );
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        throw new BadRequestException(`El usuario con id ${idUsuario} no existe`);
+      }
+      throw new BadRequestException(`No se pudo verificar el usuario con id ${idUsuario}`);
+    }
   }
 }

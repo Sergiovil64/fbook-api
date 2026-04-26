@@ -9,40 +9,53 @@ use com.fbook.errors#InternalServerError
 
 integer ReaccionId
 
+@documentation("Representa la reacción de un usuario ante una publicación.")
 structure Reaccion {
+    @documentation("Identificador único de la reacción.")
     @required
     id: ReaccionId
 
+    @documentation("ID de la publicación a la que pertenece la reacción.")
     @required
     idPublicacion: Integer
 
+    @documentation("ID del usuario que reaccionó.")
     @required
     idUsuario: Integer
 
+    @documentation("Indica si el usuario reaccionó con 'Me gusta'.")
     @required
     meGusta: Boolean
 
+    @documentation("Indica si el usuario reaccionó con 'Me encanta'.")
     @required
     meEncanta: Boolean
 
+    @documentation("Indica si el usuario reaccionó con 'Me importa'.")
     @required
     meImporta: Boolean
 
+    @documentation("Indica si el usuario reaccionó con 'Me divierte'.")
     @required
     meDivierte: Boolean
 
+    @documentation("Indica si el usuario reaccionó con 'Me asombra'.")
     @required
     meAsombra: Boolean
 
+    @documentation("Indica si el usuario reaccionó con 'Me entristece'.")
     @required
     meEntristece: Boolean
 
+    @documentation("Indica si el usuario reaccionó con 'Me enoja'.")
     @required
     meEnoja: Boolean
 
+    @documentation("Fecha y hora de la publicación asociada.")
     @required
     fPublicacion: Timestamp
 
+    @documentation("Estado de la reacción. Máximo 20 caracteres.")
     @required
     @length(max: 20)
     estado: String
@@ -54,34 +67,45 @@ list ReaccionList {
 
 // Create Reaccion
 
+@documentation("Datos requeridos para registrar una reacción a una publicación.")
 structure CreateReaccionInput {
+    @documentation("ID de la publicación a reaccionar.")
     @required
     idPublicacion: Integer
 
+    @documentation("ID del usuario que reacciona.")
     @required
     idUsuario: Integer
 
+    @documentation("Indica si el usuario reacciona con 'Me gusta'.")
     @required
     meGusta: Boolean
 
+    @documentation("Indica si el usuario reacciona con 'Me encanta'.")
     @required
     meEncanta: Boolean
 
+    @documentation("Indica si el usuario reacciona con 'Me importa'.")
     @required
     meImporta: Boolean
 
+    @documentation("Indica si el usuario reacciona con 'Me divierte'.")
     @required
     meDivierte: Boolean
 
+    @documentation("Indica si el usuario reacciona con 'Me asombra'.")
     @required
     meAsombra: Boolean
 
+    @documentation("Indica si el usuario reacciona con 'Me entristece'.")
     @required
     meEntristece: Boolean
 
+    @documentation("Indica si el usuario reacciona con 'Me enoja'.")
     @required
     meEnoja: Boolean
 
+    @documentation("Estado de la reacción. Máximo 20 caracteres.")
     @required
     @length(max: 20)
     estado: String
@@ -92,6 +116,7 @@ structure CreateReaccionOutput {
     reaccion: Reaccion
 }
 
+@documentation("Registra una nueva reacción de un usuario ante una publicación.")
 @tags(["Reacciones"])
 @http(method: "POST", uri: "/v1/reacciones", code: 201)
 operation CreateReaccion {
@@ -113,6 +138,7 @@ structure GetReaccionOutput {
     reaccion: Reaccion
 }
 
+@documentation("Obtiene los datos de una reacción por su ID.")
 @readonly
 @tags(["Reacciones"])
 @http(method: "GET", uri: "/v1/reacciones/{id}", code: 200)
@@ -152,6 +178,7 @@ structure UpdateReaccionOutput {
     reaccion: Reaccion
 }
 
+@documentation("Actualiza las reacciones de un registro existente.")
 @idempotent
 @tags(["Reacciones"])
 @http(method: "PUT", uri: "/v1/reacciones/{id}", code: 200)
@@ -169,6 +196,7 @@ structure DeleteReaccionInput {
     id: ReaccionId
 }
 
+@documentation("Elimina una reacción por su ID.")
 @idempotent
 @tags(["Reacciones"])
 @http(method: "DELETE", uri: "/v1/reacciones/{id}", code: 204)
@@ -194,6 +222,7 @@ structure ListReaccionOutput {
     nextToken: String
 }
 
+@documentation("Lista todas las reacciones con soporte de paginación.")
 @readonly
 @tags(["Reacciones"])
 @http(method: "GET", uri: "/v1/reacciones", code: 200)

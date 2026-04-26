@@ -4,7 +4,8 @@
   "scripts": {
     "build": "smithy build",
     "generate": "openapi-typescript build/smithy/source/openapi/ApiService.openapi.json -o generated/api.d.ts",
-    "build:generate": "smithy build && npm run generate"
+    "build:generate": "smithy build && npm run generate",
+    "docs": "npx @redocly/cli build-docs build/smithy/source/openapi/ApiService.openapi.json -o docs/index.html"
   },
   "devDependencies": {
     "openapi-typescript": "^7.13.0"
