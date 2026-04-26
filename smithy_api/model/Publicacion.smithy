@@ -8,17 +8,22 @@ use com.fbook.errors#InternalServerError
 
 integer PublicacionId
 
+@documentation("Representa una publicación realizada por un usuario.")
 structure Publicacion {
+    @documentation("Identificador único de la publicación.")
     @required
     id: PublicacionId
 
+    @documentation("ID del usuario autor de la publicación.")
     @required
     idUsuario: Integer
 
+    @documentation("Contenido de la publicación. Máximo 300 caracteres.")
     @required
     @length(max: 300)
     contenido: String
 
+    @documentation("Fecha y hora en que se realizó la publicación.")
     @required
     fecha: Timestamp
 }
@@ -29,10 +34,13 @@ list PublicacionList {
 
 // Create Publicacion
 
+@documentation("Datos requeridos para crear una nueva publicación.")
 structure CreatePublicacionInput {
+    @documentation("ID del usuario que realiza la publicación.")
     @required
     idUsuario: Integer
 
+    @documentation("Contenido de la publicación. Máximo 300 caracteres.")
     @required
     @length(max: 300)
     contenido: String
@@ -43,6 +51,7 @@ structure CreatePublicacionOutput {
     publicacion: Publicacion
 }
 
+@documentation("Crea una nueva publicación en la plataforma.")
 @tags(["Publicaciones"])
 @http(method: "POST", uri: "/v1/publicaciones", code: 201)
 operation CreatePublicacion {
@@ -64,6 +73,7 @@ structure GetPublicacionOutput {
     publicacion: Publicacion
 }
 
+@documentation("Obtiene los datos de una publicación por su ID.")
 @readonly
 @tags(["Publicaciones"])
 @http(method: "GET", uri: "/v1/publicaciones/{id}", code: 200)
@@ -89,6 +99,7 @@ structure UpdatePublicacionOutput {
     publicacion: Publicacion
 }
 
+@documentation("Actualiza el contenido de una publicación existente.")
 @idempotent
 @tags(["Publicaciones"])
 @http(method: "PUT", uri: "/v1/publicaciones/{id}", code: 200)
@@ -106,6 +117,7 @@ structure DeletePublicacionInput {
     id: PublicacionId
 }
 
+@documentation("Elimina una publicación por su ID.")
 @idempotent
 @tags(["Publicaciones"])
 @http(method: "DELETE", uri: "/v1/publicaciones/{id}", code: 204)
@@ -131,6 +143,7 @@ structure ListPublicacionOutput {
     nextToken: String
 }
 
+@documentation("Lista todas las publicaciones con soporte de paginación.")
 @readonly
 @tags(["Publicaciones"])
 @http(method: "GET", uri: "/v1/publicaciones", code: 200)

@@ -69,22 +69,45 @@ Use the distribution for your platform from the [Smithy releases](https://github
 
 ## 3. Build the Smithy model → OpenAPI
 
-All commands below assume your current directory is **`smithy/`** (inside the repo).
+All commands below assume your current directory is **`smithy_api/`** (inside the repo).
 
 ```bash
-cd smithy
+cd smithy_api
+npm install
 smithy build
 ```
 
-Expected: build succeeds and artifacts appear under **`smithy/build/smithy/source/`**, including:
+Expected: build succeeds and artifacts appear under **`smithy_api/build/smithy/source/`**, including:
 
 - **`openapi/ApiService.openapi.json`** — OpenAPI contract
 
-> **Important:** Run `smithy build` from the **`smithy`** directory (where `smithy-build.json` lives). If you change `.smithy` models, run `smithy build` again before regenerating server artifacts.
+> **Important:** Run `smithy build` from the **`smithy_api/`** directory (where `smithy-build.json` lives). If you change `.smithy` models, run `smithy build` again before regenerating server artifacts.
 
 ---
 
-## 4. Start PostgreSQL with Docker
+## 4. Generate API documentation
+
+Requires a successful **`smithy build`** (step 3).
+
+From **`smithy_api/`**:
+
+```bash
+npm run docs
+```
+
+This generates **`smithy_api/docs/index.html`** — an interactive HTML page with all endpoints, request/response schemas and descriptions. Open it directly in any browser (no server needed).
+
+To regenerate after model changes:
+
+```bash
+cd smithy_api
+smithy build
+npm run docs
+```
+
+---
+
+## 5. Start PostgreSQL with Docker
 
 From the **repository root** (`fbook-api/`):
 
@@ -107,7 +130,7 @@ docker compose down
 
 ---
 
-## 5. Backend (NestJS + Prisma)
+## 6. Backend (NestJS + Prisma)
 
 ### 5.1 Install dependencies
 
@@ -165,38 +188,66 @@ npm run start:dev
 
 The API listens on **`http://localhost:3000`** by default (`PORT` in `.env` overrides it).
 
-## 6. Day-to-day workflow (after the model changes)
+## 7. Microservices (NestJS — services/)
 
-1. Edit files under **`smithy/model/`**.
-2. `cd smithy && smithy build`
-3. `cd ../server && npm run generate:all`
-4. Implement business logic only under **`server/src/modules/`** (do not rely on editing generated files under `src/generated/nest/` for long-term changes).
-5. `npm run start:dev`
+The `services/` folder contains three independent NestJS microservices that run alongside the main server:
+
+| Service | Directory | Default port |
+|---|---|---|
+| Usuarios | `services/usuario/` | 3001 |
+| Amistades | `services/amistad/` | 3002 |
+| Publicaciones / Comentarios / Reacciones | `services/publicacion/` | 3003 |
+
+Each service has its own dependencies. To install and run one:
+
+```bash
+cd services/usuario
+npm install
+npm run start:dev
+```
+
+Repeat for `services/amistad` and `services/publicacion`.
 
 ---
 
-## 7. Troubleshooting
+## 8. Day-to-day workflow (after the model changes)
+
+1. Edit files under **`smithy_api/model/`**.
+2. `cd smithy_api && smithy build`
+3. `npm run docs` — regenera la documentación
+4. `cd ../server && npm run generate:all`
+5. Implement business logic only under **`server/src/modules/`** (do not rely on editing generated files under `src/generated/nest/` for long-term changes).
+6. `npm run start:dev`
+
+---
+
+## 9. Troubleshooting
 
 | Issue | What to try |
 |-------|-------------|
 | `smithy` not found (Windows) | Ensure the extracted CLI folder is on `PATH` or use the full path to `smithy.bat`. |
-| Smithy / OpenAPI build fails | Run commands from **`smithy/`**; install JDK 11+. |
-| `generate:stubs:nest` fails | Run **`smithy build`** first; check that `../smithy/build/smithy/source/openapi/ApiService.openapi.json` exists. |
+| Smithy / OpenAPI build fails | Run commands from **`smithy_api/`**; install JDK 11+. |
+| `generate:stubs:nest` fails | Run **`smithy build`** first; check that `../smithy_api/build/smithy/source/openapi/ApiService.openapi.json` exists. |
+| `docs/index.html` no se actualiza | Correr `smithy build` primero y luego `npm run docs` desde `smithy_api/`. |
 | Prisma cannot connect | Run `docker compose up -d`; confirm `.env` `DATABASE_URL` matches Docker credentials. |
 | Empty or missing `src/generated/nest` | Run `npm run generate:all` after clone and after each contract change. |
 | Port 5432 already in use | Stop the other Postgres instance or change the host port in `docker-compose.yml` and update `DATABASE_URL`. |
 
 ---
 
-## 8. Repository layout (reference)
+## 10. Repository layout (reference)
 
 ```text
 fbook-api/
-├── smithy-cli-windows-x64.zip   # Windows Smithy CLI bundle (optional local install)
+├── smithy-cli-windows-x64.zip     # Windows Smithy CLI bundle (optional local install)
 ├── docker-compose.yml             # PostgreSQL for local dev
-├── smithy/
+├── smithy_api/
 │   ├── smithy-build.json
-│   └── model/                     # Smithy API definitions
+│   ├── model/                     # Smithy API definitions (.smithy)
+│   ├── docs/
+│   │   └── index.html             # Documentación HTML generada (Redoc)
+│   └── generated/
+│       └── api.d.ts               # TypeScript types generados desde OpenAPI
 ├── server/
 │   ├── prisma/schema.prisma
 │   ├── .env.example
@@ -206,5 +257,9 @@ fbook-api/
 │       ├── generated/             # openapi-typescript + generated Nest (regenerated)
 │       ├── modules/               # Your implementations (safe to edit)
 │       └── prisma/                # PrismaModule / PrismaService
-└── INSTRUCTIONS.md                # This file
+├── services/
+│   ├── usuario/                   # Microservicio de usuarios (NestJS)
+│   ├── amistad/                   # Microservicio de amistades (NestJS)
+│   └── publicacion/               # Microservicio de publicaciones, comentarios y reacciones (NestJS)
+└── README.md                      # This file
 ```

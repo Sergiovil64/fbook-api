@@ -1,4 +1,6 @@
-import { Injectable, Inject, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, BadRequestException, OnModuleInit } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 import {
   DynamoDBDocumentClient,
   GetCommand,
@@ -9,6 +11,9 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { CreateTableCommand, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import type { components } from '@api';
+
+const USUARIO_SERVICE_URL = process.env.USUARIO_SERVICE_URL ?? 'http://localhost:3001';
+const PUBLICACION_SERVICE_URL = process.env.PUBLICACION_SERVICE_URL ?? 'http://localhost:3003';
 
 type Comentario = components['schemas']['Comentario'];
 type CreateInput = components['schemas']['CreateComentarioRequestContent'];
@@ -21,6 +26,7 @@ const TABLE = process.env.TABLE_COMENTARIOS ?? 'Comentarios';
 export class ComentariosService implements OnModuleInit {
   constructor(
     @Inject('DYNAMODB_CLIENT') private readonly dynamoClient: DynamoDBDocumentClient,
+    private readonly httpService: HttpService,
   ) {}
 
   async onModuleInit() {
@@ -43,6 +49,11 @@ export class ComentariosService implements OnModuleInit {
   }
 
   async create(body: CreateInput): Promise<Comentario> {
+    await Promise.all([
+      this.validateUsuarioExists(body.idUsuario),
+      this.validatePublicacionExists(body.idPublicacion),
+    ]);
+
     const item: Comentario = {
       id: Date.now(),
       idPublicacion: body.idPublicacion,
@@ -100,5 +111,31 @@ export class ComentariosService implements OnModuleInit {
         ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64')
         : undefined,
     };
+  }
+
+  private async validateUsuarioExists(idUsuario: number): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.httpService.get(`${USUARIO_SERVICE_URL}/v1/usuarios/${idUsuario}`),
+      );
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        throw new BadRequestException(`El usuario con id ${idUsuario} no existe`);
+      }
+      throw new BadRequestException(`No se pudo verificar el usuario con id ${idUsuario}`);
+    }
+  }
+
+  private async validatePublicacionExists(idPublicacion: number): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.httpService.get(`${PUBLICACION_SERVICE_URL}/v1/publicaciones/${idPublicacion}`),
+      );
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        throw new BadRequestException(`La publicación con id ${idPublicacion} no existe`);
+      }
+      throw new BadRequestException(`No se pudo verificar la publicación con id ${idPublicacion}`);
+    }
   }
 }

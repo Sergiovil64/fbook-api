@@ -1,4 +1,6 @@
-import { Injectable, Inject, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, BadRequestException, OnModuleInit } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 import {
   DynamoDBDocumentClient,
   GetCommand,
@@ -9,6 +11,8 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { CreateTableCommand, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import type { components } from '@api';
+
+const USUARIO_SERVICE_URL = process.env.USUARIO_SERVICE_URL ?? 'http://localhost:3001';
 
 type Publicacion = components['schemas']['Publicacion'];
 type CreateInput = components['schemas']['CreatePublicacionRequestContent'];
@@ -21,6 +25,7 @@ const TABLE = process.env.TABLE_NAME ?? 'Publicaciones';
 export class PublicacionesService implements OnModuleInit {
   constructor(
     @Inject('DYNAMODB_CLIENT') private readonly dynamoClient: DynamoDBDocumentClient,
+    private readonly httpService: HttpService,
   ) {}
 
   async onModuleInit() {
@@ -43,6 +48,8 @@ export class PublicacionesService implements OnModuleInit {
   }
 
   async create(body: CreateInput): Promise<Publicacion> {
+    await this.validateUsuarioExists(body.idUsuario);
+
     const item: Publicacion = {
       id: Date.now(),
       idUsuario: body.idUsuario,
@@ -99,5 +106,18 @@ export class PublicacionesService implements OnModuleInit {
         ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64')
         : undefined,
     };
+  }
+
+  private async validateUsuarioExists(idUsuario: number): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.httpService.get(`${USUARIO_SERVICE_URL}/v1/usuarios/${idUsuario}`),
+      );
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        throw new BadRequestException(`El usuario con id ${idUsuario} no existe`);
+      }
+      throw new BadRequestException(`No se pudo verificar el usuario con id ${idUsuario}`);
+    }
   }
 }

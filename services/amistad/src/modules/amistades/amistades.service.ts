@@ -1,4 +1,6 @@
-import { Injectable, Inject, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, BadRequestException, OnModuleInit } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 import {
   DynamoDBDocumentClient,
   GetCommand,
@@ -9,6 +11,8 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { CreateTableCommand, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import type { components } from '@api';
+
+const USUARIO_SERVICE_URL = process.env.USUARIO_SERVICE_URL ?? 'http://localhost:3001';
 
 type Amistad = components['schemas']['Amistad'];
 type CreateInput = components['schemas']['CreateAmistadRequestContent'];
@@ -21,6 +25,7 @@ const TABLE = process.env.TABLE_NAME ?? 'Amistades';
 export class AmistadesService implements OnModuleInit {
   constructor(
     @Inject('DYNAMODB_CLIENT') private readonly dynamoClient: DynamoDBDocumentClient,
+    private readonly httpService: HttpService,
   ) {}
 
   async onModuleInit() {
@@ -43,6 +48,11 @@ export class AmistadesService implements OnModuleInit {
   }
 
   async create(body: CreateInput): Promise<Amistad> {
+    await Promise.all([
+      this.validateUsuarioExists(body.idUsuario1),
+      this.validateUsuarioExists(body.idUsuario2),
+    ]);
+
     const item: Amistad = {
       id: Date.now(),
       idUsuario1: body.idUsuario1,
@@ -99,5 +109,18 @@ export class AmistadesService implements OnModuleInit {
         ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64')
         : undefined,
     };
+  }
+
+  private async validateUsuarioExists(idUsuario: number): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.httpService.get(`${USUARIO_SERVICE_URL}/v1/usuarios/${idUsuario}`),
+      );
+    } catch (err: any) {
+      if (err?.response?.status === 404) {
+        throw new BadRequestException(`El usuario con id ${idUsuario} no existe`);
+      }
+      throw new BadRequestException(`No se pudo verificar el usuario con id ${idUsuario}`);
+    }
   }
 }

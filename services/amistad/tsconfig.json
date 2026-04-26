@@ -9,6 +9,8 @@
     "target": "ES2021",
     "sourceMap": true,
     "outDir": "./dist",
+    "rootDir": "./src",
+    "ignoreDeprecations": "5.0",
     "baseUrl": "./",
     "paths": {
       "@api": ["../../smithy_api/generated/api"]

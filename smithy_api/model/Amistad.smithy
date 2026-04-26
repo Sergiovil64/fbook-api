@@ -9,16 +9,21 @@ use com.fbook.errors#InternalServerError
 
 integer AmistadId
 
+@documentation("Representa una relación de amistad entre dos usuarios.")
 structure Amistad {
+    @documentation("Identificador único de la amistad.")
     @required
     id: AmistadId
 
+    @documentation("ID del primer usuario en la relación.")
     @required
     idUsuario1: Integer
 
+    @documentation("ID del segundo usuario en la relación.")
     @required
     idUsuario2: Integer
 
+    @documentation("Estado de la amistad (ej: pendiente, aceptada, rechazada). Máximo 20 caracteres.")
     @required
     @length(max: 20)
     estado: String
@@ -30,13 +35,17 @@ list AmistadList {
 
 // Create Amistad
 
+@documentation("Datos requeridos para crear una nueva amistad.")
 structure CreateAmistadInput {
+    @documentation("ID del primer usuario en la relación.")
     @required
     idUsuario1: Integer
 
+    @documentation("ID del segundo usuario en la relación.")
     @required
     idUsuario2: Integer
 
+    @documentation("Estado inicial de la amistad. Máximo 20 caracteres.")
     @required
     @length(max: 20)
     estado: String
@@ -47,6 +56,7 @@ structure CreateAmistadOutput {
     amistad: Amistad
 }
 
+@documentation("Crea una nueva relación de amistad entre dos usuarios.")
 @tags(["Amistades"])
 @http(method: "POST", uri: "/v1/amistades", code: 201)
 operation CreateAmistad {
@@ -68,6 +78,7 @@ structure GetAmistadOutput {
     amistad: Amistad
 }
 
+@documentation("Obtiene los datos de una amistad por su ID.")
 @readonly
 @tags(["Amistades"])
 @http(method: "GET", uri: "/v1/amistades/{id}", code: 200)
@@ -93,6 +104,7 @@ structure UpdateAmistadOutput {
     amistad: Amistad
 }
 
+@documentation("Actualiza el estado de una amistad existente.")
 @idempotent
 @tags(["Amistades"])
 @http(method: "PUT", uri: "/v1/amistades/{id}", code: 200)
@@ -110,6 +122,7 @@ structure DeleteAmistadInput {
     id: AmistadId
 }
 
+@documentation("Elimina una amistad por su ID.")
 @idempotent
 @tags(["Amistades"])
 @http(method: "DELETE", uri: "/v1/amistades/{id}", code: 204)
@@ -135,6 +148,7 @@ structure ListAmistadOutput {
     nextToken: String
 }
 
+@documentation("Lista todas las amistades con soporte de paginación.")
 @readonly
 @tags(["Amistades"])
 @http(method: "GET", uri: "/v1/amistades", code: 200)

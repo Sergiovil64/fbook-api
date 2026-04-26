@@ -58,11 +58,13 @@ services:
       AWS_ACCESS_KEY_ID: local
       AWS_SECRET_ACCESS_KEY: local
       TABLE_NAME: Amistades
+      USUARIO_SERVICE_URL: http://service-usuario:3000
     volumes:
       - ./services/amistad/src:/fbook_api/services/amistad/src
       - ./smithy_api/generated:/fbook_api/smithy_api/generated
     depends_on:
       - dynamodb-amistad
+      - service-usuario
 
   service-publicacion:
     build:
@@ -81,11 +83,14 @@ services:
       TABLE_NAME: Publicaciones
       TABLE_COMENTARIOS: Comentarios
       TABLE_REACCIONES: Reacciones
+      USUARIO_SERVICE_URL: http://service-usuario:3000
+      PUBLICACION_SERVICE_URL: http://service-publicacion:3000
     volumes:
       - ./services/publicacion/src:/fbook_api/services/publicacion/src
       - ./smithy_api/generated:/fbook_api/smithy_api/generated
     depends_on:
       - dynamodb-publicacion
+      - service-usuario
 
 volumes:
   dynamodb_usuario_data:

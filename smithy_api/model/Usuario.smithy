@@ -9,21 +9,27 @@ use com.fbook.errors#InternalServerError
 
 integer UsuarioId
 
+@documentation("Representa un usuario registrado en la plataforma.")
 structure Usuario {
+    @documentation("Identificador único del usuario.")
     @required
     id: UsuarioId
 
+    @documentation("Nombre completo del usuario. Máximo 30 caracteres.")
     @required
     @length(max: 30)
     nombre: String
 
+    @documentation("Correo electrónico único del usuario. Máximo 40 caracteres.")
     @required
     @length(max: 40)
     correo: String
 
+    @documentation("Contraseña del usuario. Máximo 300 caracteres.")
     @length(max: 300)
     password: String
 
+    @documentation("Fecha y hora de registro del usuario.")
     fechaRegistro: Timestamp
 }
 
@@ -33,15 +39,19 @@ list UsuarioList {
 
 // Create Usuario
 
+@documentation("Datos requeridos para crear un nuevo usuario.")
 structure CreateUsuarioInput {
+    @documentation("Nombre completo del usuario. Máximo 30 caracteres.")
     @required
     @length(max: 30)
     nombre: String
 
+    @documentation("Correo electrónico único del usuario. Máximo 40 caracteres.")
     @required
     @length(max: 40)
     correo: String
 
+    @documentation("Contraseña del usuario. Máximo 300 caracteres.")
     @required
     @length(max: 300)
     password: String
@@ -52,6 +62,7 @@ structure CreateUsuarioOutput {
     usuario: Usuario
 }
 
+@documentation("Crea un nuevo usuario en la plataforma.")
 @tags(["Usuarios"])
 @http(method: "POST", uri: "/v1/usuarios", code: 201)
 operation CreateUsuario {
@@ -73,6 +84,7 @@ structure GetUsuarioOutput {
     usuario: Usuario
 }
 
+@documentation("Obtiene los datos de un usuario por su ID.")
 @readonly
 @tags(["Usuarios"])
 @http(method: "GET", uri: "/v1/usuarios/{id}", code: 200)
@@ -84,17 +96,22 @@ operation GetUsuario {
 
 // Update Usuario
 
+@documentation("Datos opcionales para actualizar un usuario existente.")
 structure UpdateUsuarioInput {
+    @documentation("Identificador del usuario a actualizar.")
     @required
     @httpLabel
     id: UsuarioId
 
+    @documentation("Nuevo nombre del usuario. Máximo 30 caracteres.")
     @length(max: 30)
     nombre: String
 
+    @documentation("Nuevo correo electrónico del usuario. Máximo 40 caracteres.")
     @length(max: 40)
     correo: String
 
+    @documentation("Nueva contraseña del usuario. Máximo 300 caracteres.")
     @length(max: 300)
     password: String
 }
@@ -104,6 +121,7 @@ structure UpdateUsuarioOutput {
     usuario: Usuario
 }
 
+@documentation("Actualiza los datos de un usuario existente.")
 @idempotent
 @tags(["Usuarios"])
 @http(method: "PUT", uri: "/v1/usuarios/{id}", code: 200)
@@ -121,6 +139,7 @@ structure DeleteUsuarioInput {
     id: UsuarioId
 }
 
+@documentation("Elimina un usuario de la plataforma por su ID.")
 @idempotent
 @tags(["Usuarios"])
 @http(method: "DELETE", uri: "/v1/usuarios/{id}", code: 204)
@@ -146,6 +165,7 @@ structure ListUsuariosOutput {
     nextToken: String
 }
 
+@documentation("Lista todos los usuarios registrados con soporte de paginación.")
 @readonly
 @tags(["Usuarios"])
 @http(method: "GET", uri: "/v1/usuarios", code: 200)
