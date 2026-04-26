@@ -25,17 +25,17 @@ export class PublicacionesController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.publicacionesService.findOne(Number(id));
+    return this.publicacionesService.findOne(id);
   }
 
   @Put(':id')
   update(@Param('id') id: string, @Body() body: UpdateInput) {
-    return this.publicacionesService.update(Number(id), body);
+    return this.publicacionesService.update(id, body);
   }
 
   @Delete(':id')
   @HttpCode(204)
   remove(@Param('id') id: string) {
-    return this.publicacionesService.remove(Number(id));
+    return this.publicacionesService.remove(id);
   }
 }

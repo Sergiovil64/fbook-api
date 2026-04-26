@@ -25,17 +25,17 @@ export class ComentariosController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.comentariosService.findOne(Number(id));
+    return this.comentariosService.findOne(id);
   }
 
   @Put(':id')
   update(@Param('id') id: string, @Body() body: UpdateInput) {
-    return this.comentariosService.update(Number(id), body);
+    return this.comentariosService.update(id, body);
   }
 
   @Delete(':id')
   @HttpCode(204)
   remove(@Param('id') id: string) {
-    return this.comentariosService.remove(Number(id));
+    return this.comentariosService.remove(id);
   }
 }

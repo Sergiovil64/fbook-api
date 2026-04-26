@@ -196,7 +196,7 @@ export interface components {
         /** @description Representa una relación de amistad entre dos usuarios. */
         Amistad: {
             /** @description Identificador único de la amistad. */
-            id: number;
+            id: string;
             /** @description ID del primer usuario en la relación. */
             idUsuario1: number;
             /** @description ID del segundo usuario en la relación. */
@@ -207,7 +207,7 @@ export interface components {
         /** @description Representa un comentario realizado en una publicación. */
         Comentario: {
             /** @description Identificador único del comentario. */
-            id: number;
+            id: string;
             /** @description ID de la publicación a la que pertenece el comentario. */
             idPublicacion: number;
             /** @description ID del usuario autor del comentario. */
@@ -312,7 +312,7 @@ export interface components {
         /** @description Representa una publicación realizada por un usuario. */
         Publicacion: {
             /** @description Identificador único de la publicación. */
-            id: number;
+            id: string;
             /** @description ID del usuario autor de la publicación. */
             idUsuario: number;
             /** @description Contenido de la publicación. Máximo 300 caracteres. */
@@ -326,7 +326,7 @@ export interface components {
         /** @description Representa la reacción de un usuario ante una publicación. */
         Reaccion: {
             /** @description Identificador único de la reacción. */
-            id: number;
+            id: string;
             /** @description ID de la publicación a la que pertenece la reacción. */
             idPublicacion: number;
             /** @description ID del usuario que reaccionó. */
@@ -384,7 +384,7 @@ export interface components {
         /** @description Representa un usuario registrado en la plataforma. */
         Usuario: {
             /** @description Identificador único del usuario. */
-            id: number;
+            id: string;
             /** @description Nombre completo del usuario. Máximo 30 caracteres. */
             nombre: string;
             /** @description Correo electrónico único del usuario. Máximo 40 caracteres. */
@@ -498,7 +498,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                id: string;
             };
             cookie?: never;
         };
@@ -538,7 +538,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                id: string;
             };
             cookie?: never;
         };
@@ -591,7 +591,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                id: string;
             };
             cookie?: never;
         };
@@ -703,7 +703,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                id: string;
             };
             cookie?: never;
         };
@@ -743,7 +743,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                id: string;
             };
             cookie?: never;
         };
@@ -796,7 +796,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                id: string;
             };
             cookie?: never;
         };
@@ -908,7 +908,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                id: string;
             };
             cookie?: never;
         };
@@ -948,7 +948,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                id: string;
             };
             cookie?: never;
         };
@@ -1001,7 +1001,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                id: string;
             };
             cookie?: never;
         };
@@ -1122,7 +1122,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                id: string;
             };
             cookie?: never;
         };
@@ -1162,7 +1162,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                id: string;
             };
             cookie?: never;
         };
@@ -1215,7 +1215,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                id: string;
             };
             cookie?: never;
         };
@@ -1336,7 +1336,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                id: string;
             };
             cookie?: never;
         };
@@ -1377,7 +1377,7 @@ export interface operations {
             header?: never;
             path: {
                 /** @description Identificador del usuario a actualizar. */
-                id: number;
+                id: string;
             };
             cookie?: never;
         };
@@ -1439,7 +1439,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                id: string;
             };
             cookie?: never;
         };

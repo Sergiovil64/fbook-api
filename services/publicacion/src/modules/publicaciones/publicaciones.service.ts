@@ -11,6 +11,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { CreateTableCommand, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import type { components } from '@api';
+import { randomUUID } from 'crypto';
 
 const USUARIO_SERVICE_URL = process.env.USUARIO_SERVICE_URL ?? 'http://localhost:3001';
 
@@ -36,7 +37,7 @@ export class PublicacionesService implements OnModuleInit {
         await this.dynamoClient.send(
           new CreateTableCommand({
             TableName: TABLE,
-            AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'N' }],
+            AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
             KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
             BillingMode: 'PAY_PER_REQUEST',
           }),
@@ -51,7 +52,7 @@ export class PublicacionesService implements OnModuleInit {
     await this.validateUsuarioExists(body.idUsuario);
 
     const item: Publicacion = {
-      id: Date.now(),
+      id: randomUUID(),
       idUsuario: body.idUsuario,
       contenido: body.contenido,
       fecha: Date.now(),
@@ -60,7 +61,7 @@ export class PublicacionesService implements OnModuleInit {
     return item;
   }
 
-  async findOne(id: number): Promise<Publicacion> {
+  async findOne(id: string): Promise<Publicacion> {
     const result = await this.dynamoClient.send(
       new GetCommand({ TableName: TABLE, Key: { id } }),
     );
@@ -70,7 +71,7 @@ export class PublicacionesService implements OnModuleInit {
     return result.Item as Publicacion;
   }
 
-  async update(id: number, body: UpdateInput): Promise<Publicacion> {
+  async update(id: string, body: UpdateInput): Promise<Publicacion> {
     await this.findOne(id);
     const result = await this.dynamoClient.send(
       new UpdateCommand({
@@ -85,7 +86,7 @@ export class PublicacionesService implements OnModuleInit {
     return result.Attributes as Publicacion;
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     await this.findOne(id);
     await this.dynamoClient.send(new DeleteCommand({ TableName: TABLE, Key: { id } }));
   }

@@ -7,7 +7,7 @@ use com.fbook.errors#NotFoundException
 use com.fbook.errors#ConflictException
 use com.fbook.errors#InternalServerError
 
-integer AmistadId
+string AmistadId
 
 @documentation("Representa una relación de amistad entre dos usuarios.")
 structure Amistad {

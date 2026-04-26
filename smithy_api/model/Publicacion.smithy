@@ -6,7 +6,7 @@ use com.fbook.errors#ValidationError
 use com.fbook.errors#NotFoundException
 use com.fbook.errors#InternalServerError
 
-integer PublicacionId
+string PublicacionId
 
 @documentation("Representa una publicación realizada por un usuario.")
 structure Publicacion {

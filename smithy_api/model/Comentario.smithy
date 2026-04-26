@@ -6,7 +6,7 @@ use com.fbook.errors#ValidationError
 use com.fbook.errors#NotFoundException
 use com.fbook.errors#InternalServerError
 
-integer ComentarioId
+string ComentarioId
 
 @documentation("Representa un comentario realizado en una publicación.")
 structure Comentario {

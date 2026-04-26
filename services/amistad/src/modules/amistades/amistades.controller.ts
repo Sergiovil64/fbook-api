@@ -25,17 +25,17 @@ export class AmistadesController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.amistadesService.findOne(Number(id));
+    return this.amistadesService.findOne(id);
   }
 
   @Put(':id')
   update(@Param('id') id: string, @Body() body: UpdateInput) {
-    return this.amistadesService.update(Number(id), body);
+    return this.amistadesService.update(id, body);
   }
 
   @Delete(':id')
   @HttpCode(204)
   remove(@Param('id') id: string) {
-    return this.amistadesService.remove(Number(id));
+    return this.amistadesService.remove(id);
   }
 }
