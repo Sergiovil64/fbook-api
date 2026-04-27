@@ -1,86 +1,56 @@
+## Este archivo NO se usa en el despliegue real en EC2.
+## En producción cada EC2 levanta su contenedor con "docker run" usando
+## las variables de /opt/fbook.env que provisiona el CDK automáticamente.
+## Ver README.md paso 8 o el repo fbook-cdk para los comandos exactos.
+##
+## Usos válidos de este archivo:
+##   - Referencia de la configuración de cada servicio (puertos, variables, IPs)
+##   - Correr las 3 imágenes de ECR localmente para pruebas de integración:
+##       docker compose up -d service-usuario
+##       docker compose up -d service-amistad
+##       docker compose up -d service-publicacion
+##
+## Requiere .env con:
+##   ECR_REGISTRY = <account-id>.dkr.ecr.<region>.amazonaws.com
+##   AWS_REGION   = us-east-1
+##   IMAGE_TAG    = latest
+
 services:
-  # ── DynamoDB Local ────────────────────────────────────────────────────────────
-  dynamodb-usuario:
-    image: amazon/dynamodb-local:latest
-    container_name: fbook-dynamodb-usuario
-    ports:
-      - "8001:8000"
-    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /data"
-    volumes:
-      - dynamodb_usuario_data:/data
-
-  dynamodb-amistad:
-    image: amazon/dynamodb-local:latest
-    container_name: fbook-dynamodb-amistad
-    ports:
-      - "8002:8000"
-    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /data"
-    volumes:
-      - dynamodb_amistad_data:/data
-
-  dynamodb-publicacion:
-    image: amazon/dynamodb-local:latest
-    container_name: fbook-dynamodb-publicacion
-    ports:
-      - "8003:8000"
-    command: "-jar DynamoDBLocal.jar -sharedDb -dbPath /data"
-    volumes:
-      - dynamodb_publicacion_data:/data
-
-  # ── Microservicios NestJS ─────────────────────────────────────────────────────
+  ## Microservicios NestJS
   service-usuario:
-    build:
-      context: .
-      dockerfile: services/usuario/Dockerfile
-      target: production
+    image: ${ECR_REGISTRY}/fbook-service-usuario:${IMAGE_TAG:-latest}
     container_name: fbook-service-usuario
     ports:
-      - "3001:3000"
+      - "3000:3000"
     environment:
       PORT: 3000
-      DYNAMODB_ENDPOINT: http://dynamodb-usuario:8000
-      AWS_REGION: us-east-1
-      AWS_ACCESS_KEY_ID: local
-      AWS_SECRET_ACCESS_KEY: local
+      AWS_REGION: ${AWS_REGION}
       TABLE_NAME: Usuarios
-    depends_on:
-      - dynamodb-usuario
+    restart: unless-stopped
 
   service-amistad:
-    build:
-      context: .
-      dockerfile: services/amistad/Dockerfile
-      target: production
+    image: ${ECR_REGISTRY}/fbook-service-amistad:${IMAGE_TAG:-latest}
     container_name: fbook-service-amistad
     ports:
-      - "3002:3000"
+      - "3000:3000"
     environment:
       PORT: 3000
-      DYNAMODB_ENDPOINT: http://dynamodb-amistad:8000
-      AWS_REGION: us-east-1
-      AWS_ACCESS_KEY_ID: local
-      AWS_SECRET_ACCESS_KEY: local
-    depends_on:
-      - dynamodb-amistad
+      AWS_REGION: ${AWS_REGION}
+      TABLE_NAME: Amistades
+      USUARIO_SERVICE_URL: http://10.0.2.10:3000
+    restart: unless-stopped
 
   service-publicacion:
-    build:
-      context: .
-      dockerfile: services/publicacion/Dockerfile
-      target: production
+    image: ${ECR_REGISTRY}/fbook-service-publicacion:${IMAGE_TAG:-latest}
     container_name: fbook-service-publicacion
     ports:
-      - "3003:3000"
+      - "3000:3000"
     environment:
       PORT: 3000
-      DYNAMODB_ENDPOINT: http://dynamodb-publicacion:8000
-      AWS_REGION: us-east-1
-      AWS_ACCESS_KEY_ID: local
-      AWS_SECRET_ACCESS_KEY: local
-    depends_on:
-      - dynamodb-publicacion
-
-volumes:
-  dynamodb_usuario_data:
-  dynamodb_amistad_data:
-  dynamodb_publicacion_data:
+      AWS_REGION: ${AWS_REGION}
+      TABLE_NAME: Publicaciones
+      TABLE_COMENTARIOS: Comentarios
+      TABLE_REACCIONES: Reacciones
+      USUARIO_SERVICE_URL: http://10.0.2.10:3000
+      PUBLICACION_SERVICE_URL: http://10.0.2.12:3000
+    restart: unless-stopped

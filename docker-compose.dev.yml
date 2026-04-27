@@ -1,5 +1,5 @@
 services:
-  # ── DynamoDB Local ────────────────────────────────────────────────────────────
+  # DynamoDB Local 
   dynamodb-usuario:
     image: amazon/dynamodb-local:latest
     container_name: fbook-dynamodb-usuario
@@ -21,7 +21,7 @@ services:
       - "8003:8000"
     command: "-jar DynamoDBLocal.jar -inMemory"
 
-  # ── Microservicios NestJS (desarrollo con hot-reload) ─────────────────────────
+  # Microservicios NestJS (desarrollo con hot-reload) 
   service-usuario:
     build:
       context: .

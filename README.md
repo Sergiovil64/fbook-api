@@ -1,265 +1,479 @@
-# fbook-api — Instructions
+# FBook API — Guía de Setup y Deploy
 
-Official documentation references for the whole stack (Smithy, OpenAPI, NestJS, Prisma, Docker, etc.): **[SOURCES.md](./SOURCES.md)**.
-
----
-
-## Prerequisites
-
-| Tool | Version / notes |
-|------|------------------|
-| **Node.js** | 18 or newer (`node --version`) |
-| **npm** | Comes with Node (`npm --version`) |
-| **Docker Desktop** (or Docker Engine + Compose) | For PostgreSQL (`docker --version`, `docker compose version`) |
-| **JDK** | 11 or newer — required by the **Smithy CLI** (`java --version`) |
-
-Optional but useful: **Git**, **curl** or **Postman** to call the API.
+Arquitectura de microservicios con **Smithy** (contrato API), **NestJS** (servicios) y **DynamoDB** (base de datos).
 
 ---
 
-## 1. Clone the repository
+## Tabla de contenidos
+
+**Producción**
+1. [Arquitectura](#arquitectura)
+2. [Prerrequisitos producción](#prerrequisitos-producción)
+3. [Clonar el repositorio](#clonar-el-repositorio)
+4. [Subir imágenes a Amazon ECR](#subir-imágenes-a-amazon-ecr)
+
+**Desarrollo**
+
+5. [Prerrequisitos desarrollo](#prerrequisitos-desarrollo)
+6. [Generar el contrato API con Smithy](#generar-el-contrato-api-con-smithy)
+7. [Documentación de endpoints](#documentación-de-endpoints)
+8. [Guía para developers de servicios](#guía-para-developers-de-servicios)
+9. [Flujo cuando se modifica un modelo Smithy](#flujo-cuando-se-modifica-un-modelo-smithy)
+10. [Levantar localmente sin Docker](#levantar-localmente-sin-docker)
+11. [Levantar con Docker desarrollo (hot-reload)](#levantar-con-docker-desarrollo-hot-reload)
+
+---
+
+## Arquitectura
+
+```
+fbook_api/
+├── smithy_api/              # Contrato API (fuente de verdad)
+│   ├── model/               # Modelos .smithy por entidad
+│   ├── generated/           # api.d.ts generado (compartido por todos los servicios)
+│   └── smithy-build.json    # Config de generación OpenAPI
+├── services/
+│   ├── usuario/             # Microservicio Usuario     → puerto 3001
+│   ├── amistad/             # Microservicio Amistad     → puerto 3002
+│   └── publicacion/         # Microservicio Publicacion → puerto 3003
+│                            #   (incluye Comentarios y Reacciones)
+├── docker-compose.yml       # Producción (imágenes ECR + DynamoDB AWS)
+└── docker-compose.dev.yml   # Desarrollo (hot-reload + DynamoDB Local)
+```
+
+**Puertos:**
+
+| Servicio       | App  | DynamoDB Local (solo dev) |
+|----------------|------|---------------------------|
+| usuario        | 3001 | 8001                      |
+| amistad        | 3002 | 8002                      |
+| publicacion    | 3003 | 8003                      |
+
+---
+
+# Producción
+
+## Prerrequisitos producción
+
+- **Docker** instalado y corriendo
+- **AWS CLI v2** instalado:
 
 ```bash
-git clone <repository-url>
-cd fbook-api
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+sudo ./aws/install
+aws --version
+```
+
+- **Credenciales IAM** con permisos de ECR. Configurar un perfil con nombre para no pisar otras cuentas:
+
+```bash
+aws configure --profile fbook
+# Ingresar cuando se solicite:
+#   AWS Access Key ID:     AKIA...
+#   AWS Secret Access Key: <secret>
+#   Default region name:   us-east-1
+#   Default output format: json
+```
+
+> Las credenciales (Access Key ID y Secret) se obtienen en la consola de AWS:
+> **IAM → Users → tu usuario → Security credentials → Access keys → Create access key**
+
+---
+
+## Clonar el repositorio
+
+```bash
+git clone <url-del-repositorio>
+cd fbook_api
 ```
 
 ---
 
-## 2. Install Smithy CLI
+## Subir imágenes a Amazon ECR
 
-Smithy validates the API model and produces an **OpenAPI** spec used for codegen.
+### Paso 1 — Generar el contrato API con Smithy
 
-### Windows
-
-The repository includes a Windows distribution of the Smithy CLI as a zip at the **repository root**:
-
-- **`smithy-cli-windows-x64.zip`**
-
-**Recommended: use `install.bat`**
-
-1. Extract the zip to a temporary folder (e.g. `Downloads\smithy-cli` or `C:\temp\smithy-cli`).
-2. In that folder, run **`install.bat`** (double-click or run from PowerShell/CMD).
-3. Follow the installer: it copies Smithy to a target directory (for example under `Program Files` or a path you choose) and can add the CLI to your **PATH** for all users or the current user, depending on the options you pick.
-4. Close and **open a new terminal**, then verify:
-
-   ```powershell
-   smithy --version
-   ```
-
-If `smithy` is still not found, either sign out and back in, or add the install location’s **`bin`** folder to your user **PATH** manually in *Environment Variables*.
-
-**Alternative (manual):** extract the zip, locate **`smithy.bat`** (often under a `bin` directory), and add that directory to **PATH**, or call `smithy.bat` with its full path.
-
-If you prefer not to use the bundled zip, download the latest Windows build from  
-[Smithy releases](https://github.com/smithy-lang/smithy/releases) — the same **`install.bat`** workflow usually applies after extraction.
-
-### macOS (Homebrew)
-
-```bash
-brew install smithy-lang/tap/smithy-cli
-smithy --version
-```
-
-### Linux
-
-Use the distribution for your platform from the [Smithy releases](https://github.com/smithy-lang/smithy/releases) page and add it to your `PATH`.
-
----
-
-## 3. Build the Smithy model → OpenAPI
-
-All commands below assume your current directory is **`smithy_api/`** (inside the repo).
+Asegurarse de que los tipos TypeScript estén actualizados antes de construir las imágenes:
 
 ```bash
 cd smithy_api
 npm install
 smithy build
+npm run generate
+cd ..
 ```
 
-Expected: build succeeds and artifacts appear under **`smithy_api/build/smithy/source/`**, including:
+> Si ya estaban generados y no hubo cambios en el modelo, este paso es rápido. Mejor correrlo de más que subir una imagen desactualizada.
 
-- **`openapi/ApiService.openapi.json`** — OpenAPI contract
-
-> **Important:** Run `smithy build` from the **`smithy_api/`** directory (where `smithy-build.json` lives). If you change `.smithy` models, run `smithy build` again before regenerating server artifacts.
-
----
-
-## 4. Generate API documentation
-
-Requires a successful **`smithy build`** (step 3).
-
-From **`smithy_api/`**:
+### Paso 2 — Obtener la URL del registry
 
 ```bash
-npm run docs
+echo "$(aws sts get-caller-identity --profile fbook --query Account --output text).dkr.ecr.us-east-1.amazonaws.com"
 ```
 
-This generates **`smithy_api/docs/index.html`** — an interactive HTML page with all endpoints, request/response schemas and descriptions. Open it directly in any browser (no server needed).
+Copiá el valor que imprime (ejemplo: `123456789012.dkr.ecr.us-east-1.amazonaws.com`).
 
-To regenerate after model changes:
+### Paso 3 — Crear los repositorios ECR
 
 ```bash
-cd smithy_api
-smithy build
-npm run docs
+aws ecr create-repository --repository-name fbook-service-usuario --region us-east-1 --profile fbook
+aws ecr create-repository --repository-name fbook-service-amistad --region us-east-1 --profile fbook
+aws ecr create-repository --repository-name fbook-service-publicacion --region us-east-1 --profile fbook
 ```
 
----
+> Si los repositorios ya fueron creados por CDK, omitir este paso.
 
-## 5. Start PostgreSQL with Docker
+### Paso 4 — Configurar el archivo .env
 
-From the **repository root** (`fbook-api/`):
-
-```bash
-docker compose up -d
-```
-
-This starts **PostgreSQL 16** with:
-
-- User: `dev`  
-- Password: `dev`  
-- Database: `fbook`  
-- Port: **`5432`** on localhost  
-
-To stop (container removed; data volume kept unless you remove it):
-
-```bash
-docker compose down
-```
-
----
-
-## 6. Backend (NestJS + Prisma)
-
-### 5.1 Install dependencies
-
-```bash
-cd server
-npm install
-```
-
-### 5.2 Environment variables
-
-Copy the example env file and adjust if needed:
+Copiar el ejemplo y completar con los valores reales:
 
 ```bash
 cp .env.example .env
 ```
 
-On Windows PowerShell, you can use: `Copy-Item .env.example .env`
+Editar `.env`:
 
-The default `DATABASE_URL` matches `docker-compose.yml`:
-
-```text
-postgresql://dev:dev@localhost:5432/fbook?schema=public
+```env
+ECR_REGISTRY=123456789012.dkr.ecr.us-east-1.amazonaws.com
+AWS_REGION=us-east-1
+IMAGE_TAG=latest
 ```
 
-### 5.3 Prisma: generate client and sync schema
+### Paso 5 — Ejecutar el script de push
 
-With Postgres running (`docker compose up -d`):
+Desde la raíz del proyecto:
 
 ```bash
-npm run db:generate
-npm run db:push
+./push-to-ecr.sh fbook
 ```
 
-Use `npm run db:migrate` instead of `db:push` if your team uses formal migrations.
+El script realiza automáticamente:
+1. Login a ECR con el perfil indicado
+2. Build de las 3 imágenes en modo `production`
+3. Tag de cada imagen con la URL del registry
+4. Push de las 3 imágenes a ECR
 
-### 5.4 Regenerate TypeScript types and Nest stubs from OpenAPI
-
-Requires a successful **`smithy build`** (step 3) so `ApiService.openapi.json` exists:
+### Paso 6 — Verificar en AWS
 
 ```bash
-npm run generate:all
+aws ecr list-images --repository-name fbook-service-usuario --region us-east-1 --profile fbook
+aws ecr list-images --repository-name fbook-service-amistad --region us-east-1 --profile fbook
+aws ecr list-images --repository-name fbook-service-publicacion --region us-east-1 --profile fbook
 ```
 
-This creates:
+Cada comando debe mostrar una imagen con el tag `latest`.
 
-- **`src/generated/api.d.ts`** — types from OpenAPI (openapi-typescript)  
-- **`src/generated/nest/`** — generated Nest server stubs (OpenAPI Generator). This folder is gitignored
+### Paso 7 — Desplegar infraestructura con CDK
 
-### 5.5 Build and run the API
+Seguir las instrucciones del repositorio de infraestructura para crear los 3 EC2, VPC, ALB, IAM roles y tablas DynamoDB:
+
+```
+https://github.com/Sergiovil64/fbook-cdk.git
+```
+
+Al finalizar el deploy, el CDK imprime en consola la IP pública del Bastion. Anotarla para el siguiente paso.
+
+### Paso 8 — Levantar el contenedor en cada EC2
+
+La infraestructura crea **3 EC2 en subred privada**, uno por microservicio. Conectarse a cada uno vía SSH usando el Bastion (ver instrucciones de SSH en el [repo CDK](https://github.com/Sergiovil64/fbook-cdk.git)).
+
+El CDK provisiona automáticamente `/opt/fbook.env` en cada EC2 con las variables del servicio correspondiente. No hace falta copiar ningún archivo.
+
+Conectarse a cada EC2 y ejecutar:
+
+**EC2 Usuarios — `ssh 10.0.2.10`**
+```bash
+ECR_BASE=<ECR_REGISTRY>
+
+aws ecr get-login-password --region us-east-1 \
+  | docker login --username AWS --password-stdin $ECR_BASE
+
+docker pull $ECR_BASE/fbook-service-usuario:latest
+docker rm -f fbook-svc
+docker run -d --name fbook-svc --restart always -p 3000:3000 \
+  --env-file /opt/fbook.env $ECR_BASE/fbook-service-usuario:latest
+```
+
+**EC2 Amistad — `ssh 10.0.2.11`**
+```bash
+ECR_BASE=<ECR_REGISTRY>
+
+aws ecr get-login-password --region us-east-1 \
+  | docker login --username AWS --password-stdin $ECR_BASE
+
+docker pull $ECR_BASE/fbook-service-amistad:latest
+docker rm -f fbook-svc
+docker run -d --name fbook-svc --restart always -p 3000:3000 \
+  --env-file /opt/fbook.env $ECR_BASE/fbook-service-amistad:latest
+```
+
+**EC2 Publicacion — `ssh 10.0.2.12`**
+```bash
+ECR_BASE=<ECR_REGISTRY>
+
+aws ecr get-login-password --region us-east-1 \
+  | docker login --username AWS --password-stdin $ECR_BASE
+
+docker pull $ECR_BASE/fbook-service-publicacion:latest
+docker rm -f fbook-svc
+docker run -d --name fbook-svc --restart always -p 3000:3000 \
+  --env-file /opt/fbook.env $ECR_BASE/fbook-service-publicacion:latest
+```
+
+> Los contenedores usan el **IAM Role del EC2** para acceder a DynamoDB y ECR — no se necesita `AWS_ACCESS_KEY_ID` ni `AWS_SECRET_ACCESS_KEY`.
+
+**Actualizaciones futuras** — cuando se suban nuevas imágenes con `push-to-ecr.sh`, repetir en cada EC2:
 
 ```bash
-npm run build
-npm run start:dev
+docker pull $ECR_BASE/fbook-service-<nombre>:latest
+docker rm -f fbook-svc
+docker run -d --name fbook-svc --restart always -p 3000:3000 \
+  --env-file /opt/fbook.env $ECR_BASE/fbook-service-<nombre>:latest
 ```
 
-The API listens on **`http://localhost:3000`** by default (`PORT` in `.env` overrides it).
+---
 
-## 7. Microservices (NestJS — services/)
+# Desarrollo
 
-The `services/` folder contains three independent NestJS microservices that run alongside the main server:
+## Prerrequisitos desarrollo
 
-| Service | Directory | Default port |
-|---|---|---|
-| Usuarios | `services/usuario/` | 3001 |
-| Amistades | `services/amistad/` | 3002 |
-| Publicaciones / Comentarios / Reacciones | `services/publicacion/` | 3003 |
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado y corriendo
 
-Each service has its own dependencies. To install and run one:
+> **WSL (Windows):** Habilitar integración en Docker Desktop → Settings → Resources → WSL Integration → activar tu distro → Apply & Restart.
+
+- **Node.js v22+** — instalar con NVM (recomendado):
+
+```bash
+# Instalar NVM
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+source ~/.bashrc
+
+# Instalar y usar Node 22
+nvm install 22
+nvm use 22
+
+# Verificar
+node --version   # v22.x.x
+npm --version    # 10.x.x
+```
+
+- **Smithy CLI** instalado:
+
+```bash
+smithy --version   # verificar instalación
+```
+
+> **Nota WSL:** Siempre usar una terminal WSL nativa (Ubuntu), nunca CMD ni PowerShell de Windows. Si `node` no se encuentra, ejecutar `source ~/.bashrc` primero.
+
+---
+
+## Generar el contrato API con Smithy
+
+Este paso es **obligatorio** antes de levantar cualquier servicio. Genera el OpenAPI spec y los tipos TypeScript compartidos.
+
+### Paso 1 — Smithy build
+
+```bash
+cd smithy_api
+smithy build
+```
+
+Salida esperada:
+```
+SUCCESS: Validated 526 shapes
+Completed projection source
+Summary: Smithy built 1 projection(s), 4 plugin(s), and 11 artifacts
+```
+
+### Paso 2 — Instalar dependencias de smithy_api
+
+```bash
+# Desde smithy_api/
+npm install
+```
+
+### Paso 3 — Generar tipos TypeScript compartidos
+
+```bash
+# Desde smithy_api/
+npm run generate
+```
+
+Genera: `smithy_api/generated/api.d.ts`
+
+> **Atajo:** los pasos 1 y 3 juntos:
+> ```bash
+> npm run build:generate
+> ```
+
+---
+
+## Documentación de endpoints
+
+La documentación completa e interactiva de todos los endpoints (rutas, parámetros, request/response schemas) se encuentra en:
+
+```
+smithy_api/docs/index.html
+```
+
+Abrir directamente en cualquier navegador, no requiere servidor. Para regenerarla después de cambios en el modelo:
+
+```bash
+cd smithy_api
+smithy build
+npm run docs
+```
+
+---
+
+## Guía para developers de servicios
+
+### Estructura de un servicio
+
+```
+services/usuario/
+├── src/
+│   ├── main.ts                          # Entry point
+│   ├── app.module.ts                    # Módulo raíz
+│   ├── dynamodb/
+│   │   └── dynamodb.module.ts           # Cliente DynamoDB (global)
+│   └── modules/
+│       └── usuarios/
+│           ├── usuarios.module.ts
+│           ├── usuarios.controller.ts   # Rutas HTTP
+│           └── usuarios.service.ts      # Lógica de negocio
+├── package.json
+├── tsconfig.json                        # Incluye alias @api
+├── Dockerfile
+└── .env.example
+```
+
+### Usar los tipos generados por Smithy
+
+Todos los tipos están disponibles en `smithy_api/generated/api.d.ts` a través del alias `@api`:
+
+```typescript
+import type { components } from '@api';
+
+// Tipos de request
+type CreateInput = components['schemas']['CreateUsuarioRequestContent'];
+type UpdateInput = components['schemas']['UpdateUsuarioRequestContent'];
+
+// Tipos de respuesta
+type Usuario    = components['schemas']['Usuario'];
+type ListOutput = components['schemas']['ListUsuariosResponseContent'];
+```
+
+Los schemas disponibles son:
+- `Usuario`, `Amistad`, `Publicacion`, `Comentario`, `Reaccion`
+- `Create*RequestContent`, `Update*RequestContent`
+- `List*ResponseContent`
+
+### Compilar un servicio
 
 ```bash
 cd services/usuario
-npm install
-npm run start:dev
+npm run build        # compila TypeScript → dist/
+npm run start        # corre dist/main.js (producción)
+npm run start:dev    # hot-reload con watch (desarrollo)
 ```
 
-Repeat for `services/amistad` and `services/publicacion`.
+### El alias `@api` en tsconfig
+
+Cada servicio tiene este path configurado en `tsconfig.json`:
+
+```json
+"paths": {
+  "@api": ["../../smithy_api/generated/api"]
+}
+```
 
 ---
 
-## 8. Day-to-day workflow (after the model changes)
+## Flujo cuando se modifica un modelo Smithy
 
-1. Edit files under **`smithy_api/model/`**.
-2. `cd smithy_api && smithy build`
-3. `npm run docs` — regenera la documentación
-4. `cd ../server && npm run generate:all`
-5. Implement business logic only under **`server/src/modules/`** (do not rely on editing generated files under `src/generated/nest/` for long-term changes).
-6. `npm run start:dev`
+Si se agrega un campo, operación o entidad nueva en `smithy_api/model/`:
+
+```bash
+# 1. Desde smithy_api/
+cd smithy_api
+
+# 2. Regenerar OpenAPI spec + tipos TypeScript
+npm run build:generate
+
+# 3. Los servicios ya tienen acceso a los nuevos tipos via @api
+#    Solo reconstruir el servicio afectado
+cd ../services/usuario
+npm run build
+
+# Con Docker dev (hot-reload detecta el cambio automáticamente)
+# Solo correr build:generate, el contenedor recarga solo
+```
+
+> **Regla:** nunca editar `smithy_api/generated/api.d.ts` a mano. Siempre regenerar desde los modelos `.smithy`.
 
 ---
 
-## 9. Troubleshooting
+## Levantar localmente sin Docker
 
-| Issue | What to try |
-|-------|-------------|
-| `smithy` not found (Windows) | Ensure the extracted CLI folder is on `PATH` or use the full path to `smithy.bat`. |
-| Smithy / OpenAPI build fails | Run commands from **`smithy_api/`**; install JDK 11+. |
-| `generate:stubs:nest` fails | Run **`smithy build`** first; check that `../smithy_api/build/smithy/source/openapi/ApiService.openapi.json` exists. |
-| `docs/index.html` no se actualiza | Correr `smithy build` primero y luego `npm run docs` desde `smithy_api/`. |
-| Prisma cannot connect | Run `docker compose up -d`; confirm `.env` `DATABASE_URL` matches Docker credentials. |
-| Empty or missing `src/generated/nest` | Run `npm run generate:all` after clone and after each contract change. |
-| Port 5432 already in use | Stop the other Postgres instance or change the host port in `docker-compose.yml` and update `DATABASE_URL`. |
+Requiere haber generado los tipos con Smithy (ver sección anterior).
+
+### Instalar dependencias de cada servicio
+
+```bash
+cd services/usuario && npm install
+cd ../amistad && npm install
+cd ../publicacion && npm install
+```
+
+### Configurar variables de entorno
+
+Copiar el `.env.example` de cada servicio:
+
+```bash
+cp services/usuario/.env.example services/usuario/.env
+cp services/amistad/.env.example services/amistad/.env
+cp services/publicacion/.env.example services/publicacion/.env
+```
+
+### Levantar cada servicio (3 terminales)
+
+```bash
+# Terminal 1
+cd services/usuario && PORT=3001 npm run start:dev
+
+# Terminal 2
+cd services/amistad && PORT=3002 npm run start:dev
+
+# Terminal 3
+cd services/publicacion && PORT=3003 npm run start:dev
+```
 
 ---
 
-## 10. Repository layout (reference)
+## Levantar con Docker desarrollo (hot-reload)
 
-```text
-fbook-api/
-├── smithy-cli-windows-x64.zip     # Windows Smithy CLI bundle (optional local install)
-├── docker-compose.yml             # PostgreSQL for local dev
-├── smithy_api/
-│   ├── smithy-build.json
-│   ├── model/                     # Smithy API definitions (.smithy)
-│   ├── docs/
-│   │   └── index.html             # Documentación HTML generada (Redoc)
-│   └── generated/
-│       └── api.d.ts               # TypeScript types generados desde OpenAPI
-├── server/
-│   ├── prisma/schema.prisma
-│   ├── .env.example
-│   └── src/
-│       ├── main.ts
-│       ├── app.module.ts
-│       ├── generated/             # openapi-typescript + generated Nest (regenerated)
-│       ├── modules/               # Your implementations (safe to edit)
-│       └── prisma/                # PrismaModule / PrismaService
-├── services/
-│   ├── usuario/                   # Microservicio de usuarios (NestJS)
-│   ├── amistad/                   # Microservicio de amistades (NestJS)
-│   └── publicacion/               # Microservicio de publicaciones, comentarios y reacciones (NestJS)
-└── README.md                      # This file
+Desde la raíz del proyecto (`fbook_api/`):
+
+```bash
+docker compose -f docker-compose.dev.yml up --build -d
+```
+
+Los cambios en `src/` de cada servicio se reflejan automáticamente sin reconstruir la imagen.
+
+### Ver logs
+
+```bash
+# Todos los servicios
+docker compose -f docker-compose.dev.yml logs -f
+
+# Un servicio específico
+docker compose -f docker-compose.dev.yml logs -f service-usuario
+```
+
+### Detener
+
+```bash
+docker compose -f docker-compose.dev.yml down
 ```

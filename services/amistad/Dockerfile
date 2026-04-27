@@ -19,6 +19,7 @@ CMD ["node", "dist/main.js"]
 FROM deps AS development
 COPY services/amistad/tsconfig.json ./
 COPY services/amistad/nest-cli.json ./
+COPY services/amistad/.env.example .env
 COPY smithy_api/generated/ /fbook_api/smithy_api/generated/
 EXPOSE 3000
 CMD ["npm", "run", "start:dev"]
