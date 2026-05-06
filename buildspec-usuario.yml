@@ -1,0 +1,33 @@
+version: 0.2
+
+env:
+  shell: bash
+  variables:
+    SERVICE: usuario
+
+phases:
+  build:
+    commands:
+      - git fetch --tags --force || true
+      - TAG=$(git describe --exact-match --tags HEAD 2>/dev/null || true)
+      - if [ -z "$TAG" ]; then echo "ERROR no tag at HEAD; cannot derive version"; exit 1; fi
+      - echo "Tag at HEAD = $TAG"
+      - VERSION="${TAG#${SERVICE}-v}"
+      - if [ "$VERSION" = "$TAG" ]; then echo "ERROR tag $TAG does not start with ${SERVICE}-v"; exit 1; fi
+      - MAJOR="$(echo $VERSION | cut -d. -f1)"
+      - MINOR="${MAJOR}.$(echo $VERSION | cut -d. -f2)"
+      - echo "VERSION=$VERSION MAJOR=$MAJOR MINOR=$MINOR REPO_URI=$REPO_URI"
+      - aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+      - docker build -f services/${SERVICE}/Dockerfile -t ${REPO_URI}:${VERSION} .
+      - docker tag ${REPO_URI}:${VERSION} ${REPO_URI}:${MINOR}
+      - docker tag ${REPO_URI}:${VERSION} ${REPO_URI}:${MAJOR}
+      - docker tag ${REPO_URI}:${VERSION} ${REPO_URI}:latest
+      - docker push ${REPO_URI}:${VERSION}
+      - docker push ${REPO_URI}:${MINOR}
+      - docker push ${REPO_URI}:${MAJOR}
+      - docker push ${REPO_URI}:latest
+      - 'echo "{\"version\":\"$VERSION\",\"repo\":\"$REPO_URI\"}" > image-info.json'
+
+artifacts:
+  files:
+    - image-info.json
