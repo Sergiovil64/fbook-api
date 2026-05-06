@@ -11,6 +11,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { CreateTableCommand, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import type { components } from '@api';
+import { randomUUID } from 'crypto';
 
 const USUARIO_SERVICE_URL = process.env.USUARIO_SERVICE_URL ?? 'http://localhost:3001';
 const PUBLICACION_SERVICE_URL = process.env.PUBLICACION_SERVICE_URL ?? 'http://localhost:3003';
@@ -37,7 +38,7 @@ export class ComentariosService implements OnModuleInit {
         await this.dynamoClient.send(
           new CreateTableCommand({
             TableName: TABLE,
-            AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'N' }],
+            AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
             KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
             BillingMode: 'PAY_PER_REQUEST',
           }),
@@ -55,7 +56,7 @@ export class ComentariosService implements OnModuleInit {
     ]);
 
     const item: Comentario = {
-      id: Date.now(),
+      id: randomUUID(),
       idPublicacion: body.idPublicacion,
       idUsuario: body.idUsuario,
       texto: body.texto,
@@ -65,7 +66,7 @@ export class ComentariosService implements OnModuleInit {
     return item;
   }
 
-  async findOne(id: number): Promise<Comentario> {
+  async findOne(id: string): Promise<Comentario> {
     const result = await this.dynamoClient.send(
       new GetCommand({ TableName: TABLE, Key: { id } }),
     );
@@ -75,7 +76,7 @@ export class ComentariosService implements OnModuleInit {
     return result.Item as Comentario;
   }
 
-  async update(id: number, body: UpdateInput): Promise<Comentario> {
+  async update(id: string, body: UpdateInput): Promise<Comentario> {
     await this.findOne(id);
     const result = await this.dynamoClient.send(
       new UpdateCommand({
@@ -90,7 +91,7 @@ export class ComentariosService implements OnModuleInit {
     return result.Attributes as Comentario;
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     await this.findOne(id);
     await this.dynamoClient.send(new DeleteCommand({ TableName: TABLE, Key: { id } }));
   }
@@ -113,7 +114,7 @@ export class ComentariosService implements OnModuleInit {
     };
   }
 
-  private async validateUsuarioExists(idUsuario: number): Promise<void> {
+  private async validateUsuarioExists(idUsuario: string): Promise<void> {
     try {
       await firstValueFrom(
         this.httpService.get(`${USUARIO_SERVICE_URL}/v1/usuarios/${idUsuario}`),
@@ -126,7 +127,7 @@ export class ComentariosService implements OnModuleInit {
     }
   }
 
-  private async validatePublicacionExists(idPublicacion: number): Promise<void> {
+  private async validatePublicacionExists(idPublicacion: string): Promise<void> {
     try {
       await firstValueFrom(
         this.httpService.get(`${PUBLICACION_SERVICE_URL}/v1/publicaciones/${idPublicacion}`),

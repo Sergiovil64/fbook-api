@@ -7,7 +7,7 @@ use com.fbook.errors#NotFoundException
 use com.fbook.errors#ConflictException
 use com.fbook.errors#InternalServerError
 
-integer UsuarioId
+string UsuarioId
 
 @documentation("Representa un usuario registrado en la plataforma.")
 structure Usuario {

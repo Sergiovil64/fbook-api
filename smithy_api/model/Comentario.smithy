@@ -6,7 +6,7 @@ use com.fbook.errors#ValidationError
 use com.fbook.errors#NotFoundException
 use com.fbook.errors#InternalServerError
 
-integer ComentarioId
+string ComentarioId
 
 @documentation("Representa un comentario realizado en una publicación.")
 structure Comentario {
@@ -16,11 +16,11 @@ structure Comentario {
 
     @documentation("ID de la publicación a la que pertenece el comentario.")
     @required
-    idPublicacion: Integer
+    idPublicacion: String
 
     @documentation("ID del usuario autor del comentario.")
     @required
-    idUsuario: Integer
+    idUsuario: String
 
     @documentation("Texto del comentario. Máximo 300 caracteres.")
     @required
@@ -42,11 +42,11 @@ list ComentarioList {
 structure CreateComentarioInput {
     @documentation("ID de la publicación a comentar.")
     @required
-    idPublicacion: Integer
+    idPublicacion: String
 
-    @documentation("ID del usuario que realiza el comentario.")
+    @documentation("ID del usuario que escribió el comentario.")
     @required
-    idUsuario: Integer
+    idUsuario: String
 
     @documentation("Texto del comentario. Máximo 300 caracteres.")
     @required

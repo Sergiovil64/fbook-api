@@ -11,6 +11,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { CreateTableCommand, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import type { components } from '@api';
+import { randomUUID } from 'crypto';
 
 const USUARIO_SERVICE_URL = process.env.USUARIO_SERVICE_URL ?? 'http://localhost:3001';
 const PUBLICACION_SERVICE_URL = process.env.PUBLICACION_SERVICE_URL ?? 'http://localhost:3003';
@@ -37,7 +38,7 @@ export class ReaccionesService implements OnModuleInit {
         await this.dynamoClient.send(
           new CreateTableCommand({
             TableName: TABLE,
-            AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'N' }],
+            AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
             KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
             BillingMode: 'PAY_PER_REQUEST',
           }),
@@ -56,7 +57,7 @@ export class ReaccionesService implements OnModuleInit {
     ]);
 
     const item: Reaccion = {
-      id: Date.now(),
+      id: randomUUID(),
       idPublicacion: body.idPublicacion,
       idUsuario: body.idUsuario,
       meGusta: body.meGusta,
@@ -73,7 +74,7 @@ export class ReaccionesService implements OnModuleInit {
     return item;
   }
 
-  async findOne(id: number): Promise<Reaccion> {
+  async findOne(id: string): Promise<Reaccion> {
     const result = await this.dynamoClient.send(
       new GetCommand({ TableName: TABLE, Key: { id } }),
     );
@@ -83,7 +84,7 @@ export class ReaccionesService implements OnModuleInit {
     return result.Item as Reaccion;
   }
 
-  async update(id: number, body: UpdateInput): Promise<Reaccion> {
+  async update(id: string, body: UpdateInput): Promise<Reaccion> {
     await this.findOne(id);
 
     const expressions: string[] = [];
@@ -115,7 +116,7 @@ export class ReaccionesService implements OnModuleInit {
     return result.Attributes as Reaccion;
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     await this.findOne(id);
     await this.dynamoClient.send(new DeleteCommand({ TableName: TABLE, Key: { id } }));
   }
@@ -138,7 +139,7 @@ export class ReaccionesService implements OnModuleInit {
     };
   }
 
-  private async validateReaccionUnica(idUsuario: number, idPublicacion: number): Promise<void> {
+  private async validateReaccionUnica(idUsuario: string, idPublicacion: string): Promise<void> {
     const result = await this.dynamoClient.send(
       new ScanCommand({
         TableName: TABLE,
@@ -154,7 +155,7 @@ export class ReaccionesService implements OnModuleInit {
     }
   }
 
-  private async validateUsuarioExists(idUsuario: number): Promise<void> {
+  private async validateUsuarioExists(idUsuario: string): Promise<void> {
     try {
       await firstValueFrom(
         this.httpService.get(`${USUARIO_SERVICE_URL}/v1/usuarios/${idUsuario}`),
@@ -167,7 +168,7 @@ export class ReaccionesService implements OnModuleInit {
     }
   }
 
-  private async validatePublicacionExists(idPublicacion: number): Promise<void> {
+  private async validatePublicacionExists(idPublicacion: string): Promise<void> {
     try {
       await firstValueFrom(
         this.httpService.get(`${PUBLICACION_SERVICE_URL}/v1/publicaciones/${idPublicacion}`),

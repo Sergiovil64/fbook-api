@@ -25,17 +25,17 @@ export class UsuariosController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.usuariosService.findOne(Number(id));
+    return this.usuariosService.findOne(id);
   }
 
   @Put(':id')
   update(@Param('id') id: string, @Body() body: UpdateInput) {
-    return this.usuariosService.update(Number(id), body);
+    return this.usuariosService.update(id, body);
   }
 
   @Delete(':id')
   @HttpCode(204)
   remove(@Param('id') id: string) {
-    return this.usuariosService.remove(Number(id));
+    return this.usuariosService.remove(id);
   }
 }

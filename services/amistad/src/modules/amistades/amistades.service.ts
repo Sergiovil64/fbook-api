@@ -11,6 +11,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { CreateTableCommand, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import type { components } from '@api';
+import { randomUUID } from 'crypto';
 
 const USUARIO_SERVICE_URL = process.env.USUARIO_SERVICE_URL ?? 'http://localhost:3001';
 
@@ -36,7 +37,7 @@ export class AmistadesService implements OnModuleInit {
         await this.dynamoClient.send(
           new CreateTableCommand({
             TableName: TABLE,
-            AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'N' }],
+            AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
             KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
             BillingMode: 'PAY_PER_REQUEST',
           }),
@@ -54,7 +55,7 @@ export class AmistadesService implements OnModuleInit {
     ]);
 
     const item: Amistad = {
-      id: Date.now(),
+      id: randomUUID(),
       idUsuario1: body.idUsuario1,
       idUsuario2: body.idUsuario2,
       estado: body.estado,
@@ -63,7 +64,7 @@ export class AmistadesService implements OnModuleInit {
     return item;
   }
 
-  async findOne(id: number): Promise<Amistad> {
+  async findOne(id: string): Promise<Amistad> {
     const result = await this.dynamoClient.send(
       new GetCommand({ TableName: TABLE, Key: { id } }),
     );
@@ -73,7 +74,7 @@ export class AmistadesService implements OnModuleInit {
     return result.Item as Amistad;
   }
 
-  async update(id: number, body: UpdateInput): Promise<Amistad> {
+  async update(id: string, body: UpdateInput): Promise<Amistad> {
     await this.findOne(id);
     const result = await this.dynamoClient.send(
       new UpdateCommand({
@@ -88,7 +89,7 @@ export class AmistadesService implements OnModuleInit {
     return result.Attributes as Amistad;
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     await this.findOne(id);
     await this.dynamoClient.send(new DeleteCommand({ TableName: TABLE, Key: { id } }));
   }
@@ -111,7 +112,7 @@ export class AmistadesService implements OnModuleInit {
     };
   }
 
-  private async validateUsuarioExists(idUsuario: number): Promise<void> {
+  private async validateUsuarioExists(idUsuario: string): Promise<void> {
     try {
       await firstValueFrom(
         this.httpService.get(`${USUARIO_SERVICE_URL}/v1/usuarios/${idUsuario}`),

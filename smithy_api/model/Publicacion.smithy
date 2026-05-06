@@ -6,7 +6,7 @@ use com.fbook.errors#ValidationError
 use com.fbook.errors#NotFoundException
 use com.fbook.errors#InternalServerError
 
-integer PublicacionId
+string PublicacionId
 
 @documentation("Representa una publicación realizada por un usuario.")
 structure Publicacion {
@@ -16,7 +16,7 @@ structure Publicacion {
 
     @documentation("ID del usuario autor de la publicación.")
     @required
-    idUsuario: Integer
+    idUsuario: String
 
     @documentation("Contenido de la publicación. Máximo 300 caracteres.")
     @required
@@ -38,7 +38,7 @@ list PublicacionList {
 structure CreatePublicacionInput {
     @documentation("ID del usuario que realiza la publicación.")
     @required
-    idUsuario: Integer
+    idUsuario: String
 
     @documentation("Contenido de la publicación. Máximo 300 caracteres.")
     @required

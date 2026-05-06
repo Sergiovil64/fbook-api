@@ -25,17 +25,17 @@ export class ReaccionesController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.reaccionesService.findOne(Number(id));
+    return this.reaccionesService.findOne(id);
   }
 
   @Put(':id')
   update(@Param('id') id: string, @Body() body: UpdateInput) {
-    return this.reaccionesService.update(Number(id), body);
+    return this.reaccionesService.update(id, body);
   }
 
   @Delete(':id')
   @HttpCode(204)
   remove(@Param('id') id: string) {
-    return this.reaccionesService.remove(Number(id));
+    return this.reaccionesService.remove(id);
   }
 }
