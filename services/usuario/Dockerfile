@@ -19,7 +19,6 @@ CMD ["node", "dist/main.js"]
 FROM deps AS development
 COPY services/usuario/tsconfig.json ./
 COPY services/usuario/nest-cli.json ./
-COPY services/usuario/.env.example .env
 COPY smithy_api/generated/ /fbook_api/smithy_api/generated/
 EXPOSE 3000
 CMD ["npm", "run", "start:dev"]

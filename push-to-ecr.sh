@@ -1,7 +1,15 @@
 #!/bin/bash
 set -e
 
-AWS_PROFILE=${1:-default}
+DEPLOY=false
+AWS_PROFILE="default"
+
+for arg in "$@"; do
+  case $arg in
+    --deploy) DEPLOY=true ;;
+    *) AWS_PROFILE="$arg" ;;
+  esac
+done
 
 if [ ! -f .env ]; then
   echo "Error: no se encontró el archivo .env. Copia .env.example y llena los valores."
@@ -16,6 +24,7 @@ if [ -z "$ECR_REGISTRY" ] || [ -z "$AWS_REGION" ]; then
 fi
 
 IMAGE_TAG=${IMAGE_TAG:-latest}
+ECS_CLUSTER=${ECS_CLUSTER:-fbook-cluster}
 
 SERVICES=("usuario" "amistad" "publicacion")
 
@@ -44,4 +53,26 @@ for SERVICE in "${SERVICES[@]}"; do
 done
 
 echo ""
-echo "Listo. Las 3 imágenes fueron subidas a ECR con el perfil '$AWS_PROFILE'."
+echo "Las 3 imágenes fueron subidas a ECR con el perfil '$AWS_PROFILE'."
+
+if [ "$DEPLOY" = true ]; then
+  if [ -z "$ECS_CLUSTER" ]; then
+    echo "Error: ECS_CLUSTER es obligatorio en .env para usar --deploy"
+    exit 1
+  fi
+  echo ""
+  echo "==> Forzando nuevo deployment en ECS (cluster: $ECS_CLUSTER)..."
+  for SERVICE in "${SERVICES[@]}"; do
+    echo "    → fbook-$SERVICE"
+    aws ecs update-service \
+      --cluster "$ECS_CLUSTER" \
+      --service "fbook-$SERVICE" \
+      --force-new-deployment \
+      --profile "$AWS_PROFILE" \
+      --output text \
+      --query 'service.serviceName' > /dev/null
+  done
+  echo ""
+  echo "Deployments iniciados. ECS levantará nuevas tasks con la imagen más reciente."
+  echo "Monitorea en: https://console.aws.amazon.com/ecs/home?region=$AWS_REGION#/clusters/$ECS_CLUSTER/services"
+fi

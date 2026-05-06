@@ -58,7 +58,7 @@
 | Amazon ECR — authenticate | [ECR — Private registry authentication](https://docs.aws.amazon.com/AmazonECR/latest/userguide/registry_auth.html) |
 | Multi-stage Docker builds | [Docker — Multi-stage builds](https://docs.docker.com/build/building/multi-stage/) |
 
-**This repo:** `docker-compose.yml`, `docker-compose.dev.yml`, `services/*/Dockerfile`, `push-to-ecr.sh`.
+**This repo:** `docker-compose.dev.yml`, `services/*/Dockerfile`, `push-to-ecr.sh`.
 
 ---
 
@@ -67,8 +67,9 @@
 | Topic | Source |
 |--------|--------|
 | AWS CDK — Getting started | [AWS CDK — Getting started](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html) |
-| EC2 instances | [CDK — aws-ec2](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ec2-readme.html) |
+| ECS Fargate | [CDK — aws-ecs](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_ecs-readme.html) |
 | Application Load Balancer | [CDK — aws-elasticloadbalancingv2](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_elasticloadbalancingv2-readme.html) |
+| AWS Cloud Map (service discovery) | [CDK — aws-servicediscovery](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_servicediscovery-readme.html) |
 | IAM roles & policies | [CDK — aws-iam](https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_iam-readme.html) |
 
 **Repo de infraestructura:** [fbook-cdk](https://github.com/Sergiovil64/fbook-cdk.git)

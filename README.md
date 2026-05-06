@@ -10,7 +10,7 @@ Arquitectura de microservicios con **Smithy** (contrato API), **NestJS** (servic
 1. [Arquitectura](#arquitectura)
 2. [Prerrequisitos producción](#prerrequisitos-producción)
 3. [Clonar el repositorio](#clonar-el-repositorio)
-4. [Subir imágenes a Amazon ECR](#subir-imágenes-a-amazon-ecr)
+4. [Deploy a AWS](#subir-imágenes-a-amazon-ecr)
 
 **Desarrollo**
 
@@ -37,7 +37,6 @@ fbook_api/
 │   ├── amistad/             # Microservicio Amistad     → puerto 3002
 │   └── publicacion/         # Microservicio Publicacion → puerto 3003
 │                            #   (incluye Comentarios y Reacciones)
-├── docker-compose.yml       # Producción (imágenes ECR + DynamoDB AWS)
 └── docker-compose.dev.yml   # Desarrollo (hot-reload + DynamoDB Local)
 ```
 
@@ -48,6 +47,10 @@ fbook_api/
 | usuario        | 3001 | 8001                      |
 | amistad        | 3002 | 8002                      |
 | publicacion    | 3003 | 8003                      |
+
+**Variables de entorno:**
+- **Desarrollo:** todas las variables las provee `docker-compose.dev.yml` — no se necesita ningún `.env` por servicio.
+- **Producción:** ECS las inyecta desde el Task Definition configurado por CDK.
 
 ---
 
@@ -65,7 +68,7 @@ sudo ./aws/install
 aws --version
 ```
 
-- **Credenciales IAM** con permisos de ECR. Configurar un perfil con nombre para no pisar otras cuentas:
+- **Credenciales IAM** con permisos de ECR y ECS. Configurar un perfil con nombre para no pisar otras cuentas:
 
 ```bash
 aws configure --profile fbook
@@ -76,7 +79,7 @@ aws configure --profile fbook
 #   Default output format: json
 ```
 
-> Las credenciales (Access Key ID y Secret) se obtienen en la consola de AWS:
+> Las credenciales se obtienen en la consola de AWS:
 > **IAM → Users → tu usuario → Security credentials → Access keys → Create access key**
 
 ---
@@ -92,7 +95,42 @@ cd fbook_api
 
 ## Subir imágenes a Amazon ECR
 
-### Paso 1 — Generar el contrato API con Smithy
+### Paso 1 — Desplegar infraestructura con CDK
+
+Antes de subir cualquier imagen el CDK debe estar desplegado. Crea los repositorios ECR, el cluster ECS Fargate, ALB, Cloud Map, IAM roles y tablas DynamoDB:
+
+```
+https://github.com/Sergiovil64/fbook-cdk.git
+```
+
+Seguir las instrucciones de ese repo. Al finalizar, el CDK imprime en consola los outputs necesarios para el siguiente paso.
+
+### Paso 2 — Obtener la URL del registry
+
+```bash
+echo "$(aws sts get-caller-identity --profile fbook --query Account --output text).dkr.ecr.us-east-1.amazonaws.com"
+```
+
+Copiá el valor que imprime (ejemplo: `123456789012.dkr.ecr.us-east-1.amazonaws.com`). Se usará en el siguiente paso.
+
+### Paso 3 — Configurar el archivo .env
+
+Copiar el ejemplo y completar con los valores obtenidos:
+
+```bash
+cp .env.example .env
+```
+
+Editar `.env`:
+
+```env
+ECR_REGISTRY=123456789012.dkr.ecr.us-east-1.amazonaws.com  # output del CDK
+AWS_REGION=us-east-1
+IMAGE_TAG=latest
+ECS_CLUSTER=fbook-cluster  # confirmar con el equipo CDK si difiere
+```
+
+### Paso 4 — Generar el contrato API con Smithy
 
 Asegurarse de que los tipos TypeScript estén actualizados antes de construir las imágenes:
 
@@ -106,46 +144,12 @@ cd ..
 
 > Si ya estaban generados y no hubo cambios en el modelo, este paso es rápido. Mejor correrlo de más que subir una imagen desactualizada.
 
-### Paso 2 — Obtener la URL del registry
-
-```bash
-echo "$(aws sts get-caller-identity --profile fbook --query Account --output text).dkr.ecr.us-east-1.amazonaws.com"
-```
-
-Copiá el valor que imprime (ejemplo: `123456789012.dkr.ecr.us-east-1.amazonaws.com`).
-
-### Paso 3 — Crear los repositorios ECR
-
-```bash
-aws ecr create-repository --repository-name fbook-service-usuario --region us-east-1 --profile fbook
-aws ecr create-repository --repository-name fbook-service-amistad --region us-east-1 --profile fbook
-aws ecr create-repository --repository-name fbook-service-publicacion --region us-east-1 --profile fbook
-```
-
-> Si los repositorios ya fueron creados por CDK, omitir este paso.
-
-### Paso 4 — Configurar el archivo .env
-
-Copiar el ejemplo y completar con los valores reales:
-
-```bash
-cp .env.example .env
-```
-
-Editar `.env`:
-
-```env
-ECR_REGISTRY=123456789012.dkr.ecr.us-east-1.amazonaws.com
-AWS_REGION=us-east-1
-IMAGE_TAG=latest
-```
-
 ### Paso 5 — Ejecutar el script de push
 
 Desde la raíz del proyecto:
 
 ```bash
-./push-to-ecr.sh fbook
+./push-to-ecr.sh fbook --deploy
 ```
 
 El script realiza automáticamente:
@@ -153,84 +157,27 @@ El script realiza automáticamente:
 2. Build de las 3 imágenes en modo `production`
 3. Tag de cada imagen con la URL del registry
 4. Push de las 3 imágenes a ECR
+5. `aws ecs update-service --force-new-deployment` en los 3 servicios
 
-### Paso 6 — Verificar en AWS
-
-```bash
-aws ecr list-images --repository-name fbook-service-usuario --region us-east-1 --profile fbook
-aws ecr list-images --repository-name fbook-service-amistad --region us-east-1 --profile fbook
-aws ecr list-images --repository-name fbook-service-publicacion --region us-east-1 --profile fbook
-```
-
-Cada comando debe mostrar una imagen con el tag `latest`.
-
-### Paso 7 — Desplegar infraestructura con CDK
-
-Seguir las instrucciones del repositorio de infraestructura para crear los 3 EC2, VPC, ALB, IAM roles y tablas DynamoDB:
-
-```
-https://github.com/Sergiovil64/fbook-cdk.git
-```
-
-Al finalizar el deploy, el CDK imprime en consola la IP pública del Bastion. Anotarla para el siguiente paso.
-
-### Paso 8 — Levantar el contenedor en cada EC2
-
-La infraestructura crea **3 EC2 en subred privada**, uno por microservicio. Conectarse a cada uno vía SSH usando el Bastion (ver instrucciones de SSH en el [repo CDK](https://github.com/Sergiovil64/fbook-cdk.git)).
-
-El CDK provisiona automáticamente `/opt/fbook.env` en cada EC2 con las variables del servicio correspondiente. No hace falta copiar ningún archivo.
-
-Conectarse a cada EC2 y ejecutar:
-
-**EC2 Usuarios — `ssh 10.0.2.10`**
-```bash
-ECR_BASE=<ECR_REGISTRY>
-
-aws ecr get-login-password --region us-east-1 \
-  | docker login --username AWS --password-stdin $ECR_BASE
-
-docker pull $ECR_BASE/fbook-service-usuario:latest
-docker rm -f fbook-svc
-docker run -d --name fbook-svc --restart always -p 3000:3000 \
-  --env-file /opt/fbook.env $ECR_BASE/fbook-service-usuario:latest
-```
-
-**EC2 Amistad — `ssh 10.0.2.11`**
-```bash
-ECR_BASE=<ECR_REGISTRY>
-
-aws ecr get-login-password --region us-east-1 \
-  | docker login --username AWS --password-stdin $ECR_BASE
-
-docker pull $ECR_BASE/fbook-service-amistad:latest
-docker rm -f fbook-svc
-docker run -d --name fbook-svc --restart always -p 3000:3000 \
-  --env-file /opt/fbook.env $ECR_BASE/fbook-service-amistad:latest
-```
-
-**EC2 Publicacion — `ssh 10.0.2.12`**
-```bash
-ECR_BASE=<ECR_REGISTRY>
-
-aws ecr get-login-password --region us-east-1 \
-  | docker login --username AWS --password-stdin $ECR_BASE
-
-docker pull $ECR_BASE/fbook-service-publicacion:latest
-docker rm -f fbook-svc
-docker run -d --name fbook-svc --restart always -p 3000:3000 \
-  --env-file /opt/fbook.env $ECR_BASE/fbook-service-publicacion:latest
-```
-
-> Los contenedores usan el **IAM Role del EC2** para acceder a DynamoDB y ECR — no se necesita `AWS_ACCESS_KEY_ID` ni `AWS_SECRET_ACCESS_KEY`.
-
-**Actualizaciones futuras** — cuando se suban nuevas imágenes con `push-to-ecr.sh`, repetir en cada EC2:
+### Paso 6 — Verificar el deploy
 
 ```bash
-docker pull $ECR_BASE/fbook-service-<nombre>:latest
-docker rm -f fbook-svc
-docker run -d --name fbook-svc --restart always -p 3000:3000 \
-  --env-file /opt/fbook.env $ECR_BASE/fbook-service-<nombre>:latest
+aws ecs describe-services \
+  --cluster fbook-cluster \
+  --services fbook-usuario fbook-amistad fbook-publicacion \
+  --profile fbook \
+  --query 'services[*].{name:serviceName,running:runningCount,desired:desiredCount,status:status}'
 ```
+
+O directamente en la consola de AWS: **ECS → Clusters → fbook-cluster → Services**.
+
+**Actualizaciones futuras** — cuando se suban nuevos cambios:
+
+```bash
+./push-to-ecr.sh fbook --deploy
+```
+
+ECS descarga la imagen más reciente y reemplaza los contenedores sin downtime.
 
 ---
 
@@ -345,8 +292,7 @@ services/usuario/
 │           └── usuarios.service.ts      # Lógica de negocio
 ├── package.json
 ├── tsconfig.json                        # Incluye alias @api
-├── Dockerfile
-└── .env.example
+└── Dockerfile
 ```
 
 ### Usar los tipos generados por Smithy
@@ -417,7 +363,7 @@ npm run build
 
 ## Levantar localmente sin Docker
 
-Requiere haber generado los tipos con Smithy (ver sección anterior).
+Requiere haber generado los tipos con Smithy (ver sección anterior) y tener una instancia de DynamoDB Local corriendo por servicio.
 
 ### Instalar dependencias de cada servicio
 
@@ -429,25 +375,56 @@ cd ../publicacion && npm install
 
 ### Configurar variables de entorno
 
-Copiar el `.env.example` de cada servicio:
+Cada servicio lee sus variables desde `process.env`. Sin Docker, setearlas antes de arrancar cada proceso. Referencia de variables necesarias por servicio:
 
+**usuario:**
 ```bash
-cp services/usuario/.env.example services/usuario/.env
-cp services/amistad/.env.example services/amistad/.env
-cp services/publicacion/.env.example services/publicacion/.env
+export PORT=3001
+export DYNAMODB_ENDPOINT=http://localhost:8001
+export AWS_REGION=us-east-1
+export AWS_ACCESS_KEY_ID=local
+export AWS_SECRET_ACCESS_KEY=local
+export TABLE_NAME=Usuarios
 ```
+
+**amistad:**
+```bash
+export PORT=3002
+export DYNAMODB_ENDPOINT=http://localhost:8002
+export AWS_REGION=us-east-1
+export AWS_ACCESS_KEY_ID=local
+export AWS_SECRET_ACCESS_KEY=local
+export TABLE_NAME=Amistades
+export USUARIO_SERVICE_URL=http://localhost:3001
+```
+
+**publicacion:**
+```bash
+export PORT=3003
+export DYNAMODB_ENDPOINT=http://localhost:8003
+export AWS_REGION=us-east-1
+export AWS_ACCESS_KEY_ID=local
+export AWS_SECRET_ACCESS_KEY=local
+export TABLE_NAME=Publicaciones
+export TABLE_COMENTARIOS=Comentarios
+export TABLE_REACCIONES=Reacciones
+export USUARIO_SERVICE_URL=http://localhost:3001
+export PUBLICACION_SERVICE_URL=http://localhost:3003
+```
+
+> El flujo recomendado es usar Docker (sección siguiente) — evita configurar DynamoDB Local y variables manualmente.
 
 ### Levantar cada servicio (3 terminales)
 
 ```bash
 # Terminal 1
-cd services/usuario && PORT=3001 npm run start:dev
+cd services/usuario && npm run start:dev
 
 # Terminal 2
-cd services/amistad && PORT=3002 npm run start:dev
+cd services/amistad && npm run start:dev
 
 # Terminal 3
-cd services/publicacion && PORT=3003 npm run start:dev
+cd services/publicacion && npm run start:dev
 ```
 
 ---
@@ -460,7 +437,15 @@ Desde la raíz del proyecto (`fbook_api/`):
 docker compose -f docker-compose.dev.yml up --build -d
 ```
 
-Los cambios en `src/` de cada servicio se reflejan automáticamente sin reconstruir la imagen.
+Los cambios en `src/` de cada servicio se reflejan automáticamente sin reconstruir la imagen. No se necesita configurar ningún `.env` — `docker-compose.dev.yml` provee todas las variables.
+
+### Verificar que los servicios están corriendo
+
+```bash
+curl http://localhost:3001/health   # {"status":"ok"}
+curl http://localhost:3002/health   # {"status":"ok"}
+curl http://localhost:3003/health   # {"status":"ok"}
+```
 
 ### Ver logs
 
