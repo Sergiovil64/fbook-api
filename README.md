@@ -11,16 +11,17 @@ Arquitectura de microservicios con **Smithy** (contrato API), **NestJS** (servic
 2. [Prerrequisitos producción](#prerrequisitos-producción)
 3. [Clonar el repositorio](#clonar-el-repositorio)
 4. [Deploy a AWS](#subir-imágenes-a-amazon-ecr)
+5. [Autenticación con Cognito](#autenticación-con-cognito)
 
 **Desarrollo**
 
-5. [Prerrequisitos desarrollo](#prerrequisitos-desarrollo)
-6. [Generar el contrato API con Smithy](#generar-el-contrato-api-con-smithy)
-7. [Documentación de endpoints](#documentación-de-endpoints)
-8. [Guía para developers de servicios](#guía-para-developers-de-servicios)
-9. [Flujo cuando se modifica un modelo Smithy](#flujo-cuando-se-modifica-un-modelo-smithy)
-10. [Levantar localmente sin Docker](#levantar-localmente-sin-docker)
-11. [Levantar con Docker desarrollo (hot-reload)](#levantar-con-docker-desarrollo-hot-reload)
+6. [Prerrequisitos desarrollo](#prerrequisitos-desarrollo)
+7. [Generar el contrato API con Smithy](#generar-el-contrato-api-con-smithy)
+8. [Documentación de endpoints](#documentación-de-endpoints)
+9. [Guía para developers de servicios](#guía-para-developers-de-servicios)
+10. [Flujo cuando se modifica un modelo Smithy](#flujo-cuando-se-modifica-un-modelo-smithy)
+11. [Levantar localmente sin Docker](#levantar-localmente-sin-docker)
+12. [Levantar con Docker desarrollo (hot-reload)](#levantar-con-docker-desarrollo-hot-reload)
 
 ---
 
@@ -127,7 +128,9 @@ Editar `.env`:
 ECR_REGISTRY=123456789012.dkr.ecr.us-east-1.amazonaws.com  # output del CDK
 AWS_REGION=us-east-1
 IMAGE_TAG=latest
-ECS_CLUSTER=fbook-cluster  # confirmar con el equipo CDK si difiere
+ECS_CLUSTER=fbook-cluster                                  # confirmar con el equipo CDK si difiere
+COGNITO_USER_POOL_ID=us-east-1_XXXXXXXXX                  # output del CDK (FbookUserPoolId)
+COGNITO_CLIENT_ID=XXXXXXXXXXXXXXXXXXXXXXXXXX               # output del CDK (FbookUserPoolClientId)
 ```
 
 ### Paso 4 — Generar el contrato API con Smithy
@@ -178,6 +181,63 @@ O directamente en la consola de AWS: **ECS → Clusters → fbook-cluster → Se
 ```
 
 ECS descarga la imagen más reciente y reemplaza los contenedores sin downtime.
+
+---
+
+## Autenticación con Cognito
+
+Los endpoints están protegidos con JWT emitidos por Amazon Cognito. El flujo es:
+
+### 1 — Registrar un usuario
+
+```
+POST /v1/usuarios
+Content-Type: application/json
+
+{
+  "nombre": "Tu Nombre",
+  "correo": "tucorreo@ejemplo.com",
+  "password": "Password123!"
+}
+```
+
+Esto crea el usuario en DynamoDB **y** en Cognito (contraseña permanente, email verificado automáticamente).
+
+### 2 — Obtener el token JWT
+
+Llamar directamente al endpoint de Cognito:
+
+```
+POST https://cognito-idp.us-east-1.amazonaws.com/
+Content-Type: application/x-amz-json-1.1
+X-Amz-Target: AWSCognitoIdentityProviderService.InitiateAuth
+
+{
+  "AuthFlow": "USER_PASSWORD_AUTH",
+  "ClientId": "<COGNITO_CLIENT_ID>",
+  "AuthParameters": {
+    "USERNAME": "tucorreo@ejemplo.com",
+    "PASSWORD": "Password123!"
+  }
+}
+```
+
+La respuesta incluye `IdToken`, `AccessToken` y `RefreshToken`.
+
+### 3 — Usar el token en requests protegidos
+
+Agregar los siguientes headers en todos los requests a endpoints protegidos:
+
+```
+Authorization: Bearer <IdToken>
+Content-Type: application/json
+```
+
+**Endpoints públicos** (no requieren token):
+- `POST /v1/usuarios` — registro de usuario
+
+**Endpoints protegidos** (requieren token):
+- Todos los demás (`GET`, `PUT`, `DELETE` en usuarios, publicaciones, comentarios, reacciones, amistades)
 
 ---
 
@@ -385,6 +445,7 @@ export AWS_REGION=us-east-1
 export AWS_ACCESS_KEY_ID=local
 export AWS_SECRET_ACCESS_KEY=local
 export TABLE_NAME=Usuarios
+export COGNITO_USER_POOL_ID=us-east-1_XXXXXXXXX   # solo necesario si se prueba auth localmente
 ```
 
 **amistad:**
@@ -396,6 +457,7 @@ export AWS_ACCESS_KEY_ID=local
 export AWS_SECRET_ACCESS_KEY=local
 export TABLE_NAME=Amistades
 export USUARIO_SERVICE_URL=http://localhost:3001
+export COGNITO_USER_POOL_ID=us-east-1_XXXXXXXXX   # solo necesario si se prueba auth localmente
 ```
 
 **publicacion:**
@@ -410,6 +472,7 @@ export TABLE_COMENTARIOS=Comentarios
 export TABLE_REACCIONES=Reacciones
 export USUARIO_SERVICE_URL=http://localhost:3001
 export PUBLICACION_SERVICE_URL=http://localhost:3003
+export COGNITO_USER_POOL_ID=us-east-1_XXXXXXXXX   # solo necesario si se prueba auth localmente
 ```
 
 > El flujo recomendado es usar Docker (sección siguiente) — evita configurar DynamoDB Local y variables manualmente.

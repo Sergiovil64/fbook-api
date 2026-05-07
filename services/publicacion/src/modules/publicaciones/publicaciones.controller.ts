@@ -1,10 +1,12 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpCode, UseGuards } from '@nestjs/common';
 import { PublicacionesService } from './publicaciones.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { components } from '@api';
 
 type CreateInput = components['schemas']['CreatePublicacionRequestContent'];
 type UpdateInput = components['schemas']['UpdatePublicacionRequestContent'];
 
+@UseGuards(JwtAuthGuard)
 @Controller('v1/publicaciones')
 export class PublicacionesController {
   constructor(private readonly publicacionesService: PublicacionesService) {}

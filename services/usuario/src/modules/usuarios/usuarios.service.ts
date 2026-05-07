@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, ConflictException, OnModuleInit } from '@nestjs/common';
 import {
   DynamoDBDocumentClient,
   GetCommand,
@@ -8,6 +8,13 @@ import {
   ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { CreateTableCommand, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
+import {
+  CognitoIdentityProviderClient,
+  AdminCreateUserCommand,
+  AdminSetUserPasswordCommand,
+  AdminDeleteUserCommand,
+  MessageActionType,
+} from '@aws-sdk/client-cognito-identity-provider';
 import type { components } from '@api';
 import { randomUUID } from 'crypto';
 
@@ -17,12 +24,19 @@ type UpdateInput = components['schemas']['UpdateUsuarioRequestContent'];
 type ListOutput = components['schemas']['ListUsuariosResponseContent'];
 
 const TABLE = process.env.TABLE_NAME ?? 'Usuarios';
+const USER_POOL_ID = process.env.COGNITO_USER_POOL_ID!;
 
 @Injectable()
 export class UsuariosService implements OnModuleInit {
+  private readonly cognitoClient: CognitoIdentityProviderClient;
+
   constructor(
     @Inject('DYNAMODB_CLIENT') private readonly dynamoClient: DynamoDBDocumentClient,
-  ) {}
+  ) {
+    this.cognitoClient = new CognitoIdentityProviderClient({
+      region: process.env.AWS_REGION ?? 'us-east-1',
+    });
+  }
 
   async onModuleInit() {
     try {
@@ -44,11 +58,36 @@ export class UsuariosService implements OnModuleInit {
   }
 
   async create(body: CreateInput): Promise<Usuario> {
+    // 1. Register in Cognito
+    try {
+      await this.cognitoClient.send(new AdminCreateUserCommand({
+        UserPoolId: USER_POOL_ID,
+        Username: body.correo,
+        MessageAction: MessageActionType.SUPPRESS,
+        UserAttributes: [
+          { Name: 'email', Value: body.correo },
+          { Name: 'name', Value: body.nombre },
+          { Name: 'email_verified', Value: 'true' },
+        ],
+      }));
+      await this.cognitoClient.send(new AdminSetUserPasswordCommand({
+        UserPoolId: USER_POOL_ID,
+        Username: body.correo,
+        Password: body.password,
+        Permanent: true,
+      }));
+    } catch (err: any) {
+      if (err?.name === 'UsernameExistsException') {
+        throw new ConflictException(`El correo ${body.correo} ya está registrado`);
+      }
+      throw err;
+    }
+
+    // 2. Persist profile in DynamoDB (password not stored)
     const usuario: Usuario = {
       id: randomUUID(),
       nombre: body.nombre,
       correo: body.correo,
-      password: body.password,
       fechaRegistro: Date.now(),
     };
     await this.dynamoClient.send(new PutCommand({ TableName: TABLE, Item: usuario }));
@@ -102,7 +141,12 @@ export class UsuariosService implements OnModuleInit {
   }
 
   async remove(id: string): Promise<void> {
-    await this.findOne(id);
+    const usuario = await this.findOne(id);
+    // Delete from Cognito
+    await this.cognitoClient.send(new AdminDeleteUserCommand({
+      UserPoolId: USER_POOL_ID,
+      Username: usuario.correo,
+    })).catch(() => { /* ignore if not found in Cognito */ });
     await this.dynamoClient.send(new DeleteCommand({ TableName: TABLE, Key: { id } }));
   }
 

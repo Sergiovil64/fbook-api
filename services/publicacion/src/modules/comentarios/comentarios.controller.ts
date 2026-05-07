@@ -1,10 +1,12 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpCode, UseGuards } from '@nestjs/common';
 import { ComentariosService } from './comentarios.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { components } from '@api';
 
 type CreateInput = components['schemas']['CreateComentarioRequestContent'];
 type UpdateInput = components['schemas']['UpdateComentarioRequestContent'];
 
+@UseGuards(JwtAuthGuard)
 @Controller('v1/comentarios')
 export class ComentariosController {
   constructor(private readonly comentariosService: ComentariosService) {}

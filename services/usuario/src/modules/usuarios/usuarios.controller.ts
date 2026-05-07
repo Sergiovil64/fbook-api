@@ -1,5 +1,6 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpCode, UseGuards } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { components } from '@api';
 
 type CreateInput = components['schemas']['CreateUsuarioRequestContent'];
@@ -15,6 +16,7 @@ export class UsuariosController {
     return this.usuariosService.create(body);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get()
   findAll(
     @Query('nextToken') nextToken?: string,
@@ -28,11 +30,13 @@ export class UsuariosController {
     return this.usuariosService.findOne(id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Put(':id')
   update(@Param('id') id: string, @Body() body: UpdateInput) {
     return this.usuariosService.update(id, body);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   @HttpCode(204)
   remove(@Param('id') id: string) {
