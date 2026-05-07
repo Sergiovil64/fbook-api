@@ -9,11 +9,10 @@ phases:
   build:
     commands:
       - git fetch --tags --force || true
-      - TAG=$(git describe --exact-match --tags HEAD 2>/dev/null || true)
-      - if [ -z "$TAG" ]; then echo "ERROR no tag at HEAD; cannot derive version"; exit 1; fi
-      - echo "Tag at HEAD = $TAG"
+      - TAG=$(git tag --points-at HEAD | grep "^${SERVICE}-v" | head -n1)
+      - if [ -z "$TAG" ]; then echo "ERROR no ${SERVICE}-v* tag at HEAD; cannot derive version"; exit 1; fi
+      - echo "Tag at HEAD for ${SERVICE} = $TAG"
       - VERSION="${TAG#${SERVICE}-v}"
-      - if [ "$VERSION" = "$TAG" ]; then echo "ERROR tag $TAG does not start with ${SERVICE}-v"; exit 1; fi
       - MAJOR="$(echo $VERSION | cut -d. -f1)"
       - MINOR="${MAJOR}.$(echo $VERSION | cut -d. -f2)"
       - echo "VERSION=$VERSION MAJOR=$MAJOR MINOR=$MINOR REPO_URI=$REPO_URI"
