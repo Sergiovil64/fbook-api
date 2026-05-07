@@ -18,7 +18,7 @@ phases:
       - MINOR="${MAJOR}.$(echo $VERSION | cut -d. -f2)"
       - echo "VERSION=$VERSION MAJOR=$MAJOR MINOR=$MINOR REPO_URI=$REPO_URI"
       - aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
-      - docker build -f services/${SERVICE}/Dockerfile -t ${REPO_URI}:${VERSION} .
+      - docker build --target production -f services/${SERVICE}/Dockerfile -t ${REPO_URI}:${VERSION} .
       - docker tag ${REPO_URI}:${VERSION} ${REPO_URI}:${MINOR}
       - docker tag ${REPO_URI}:${VERSION} ${REPO_URI}:${MAJOR}
       - docker tag ${REPO_URI}:${VERSION} ${REPO_URI}:latest
