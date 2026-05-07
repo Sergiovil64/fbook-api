@@ -112,7 +112,9 @@ export class PublicacionesService implements OnModuleInit {
   private async validateUsuarioExists(idUsuario: string): Promise<void> {
     try {
       await firstValueFrom(
-        this.httpService.get(`${USUARIO_SERVICE_URL}/v1/usuarios/${idUsuario}`),
+        this.httpService.get(`${USUARIO_SERVICE_URL}/v1/usuarios/${idUsuario}`, {
+          timeout: 5000,
+        }),
       );
     } catch (err: any) {
       if (err?.response?.status === 404) {

@@ -1,10 +1,12 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpCode, UseGuards } from '@nestjs/common';
 import { ReaccionesService } from './reacciones.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { components } from '@api';
 
 type CreateInput = components['schemas']['CreateReaccionRequestContent'];
 type UpdateInput = components['schemas']['UpdateReaccionRequestContent'];
 
+@UseGuards(JwtAuthGuard)
 @Controller('v1/reacciones')
 export class ReaccionesController {
   constructor(private readonly reaccionesService: ReaccionesService) {}
