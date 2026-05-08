@@ -10,8 +10,9 @@ Arquitectura de microservicios con **Smithy** (contrato API), **NestJS** (servic
 1. [Arquitectura](#arquitectura)
 2. [Prerrequisitos producción](#prerrequisitos-producción)
 3. [Clonar el repositorio](#clonar-el-repositorio)
-4. [Deploy a AWS](#subir-imágenes-a-amazon-ecr)
-5. [Autenticación con Cognito](#autenticación-con-cognito)
+4. [Releases automatizados (CI/CD)](#releases-automatizados-cicd)
+5. [Deploy manual (fallback)](#subir-imágenes-a-amazon-ecr)
+6. [Autenticación con Cognito](#autenticación-con-cognito)
 
 **Desarrollo**
 
@@ -94,7 +95,88 @@ cd fbook_api
 
 ---
 
+## Releases automatizados (CI/CD)
+
+El método **recomendado** para hacer un release a producción es por tag git. La infraestructura CDK provisiona 4 pipelines en AWS CodePipeline:
+
+| Pipeline                      | Trigger                                                     | Etapas                            |
+| ----------------------------- | ----------------------------------------------------------- | --------------------------------- |
+| `fbook-pipeline-ci`           | Push a `main` + PR (open/updated) contra `main`             | Source → Build (type-check)       |
+| `fbook-pipeline-usuario`      | Push de tag `usuario-v*`                                    | Source → Build → Deploy ECS       |
+| `fbook-pipeline-amistad`      | Push de tag `amistad-v*`                                    | Source → Build → Deploy ECS       |
+| `fbook-pipeline-publicacion`  | Push de tag `publicacion-v*`                                | Source → Build → Deploy ECS       |
+
+### CI — corre antes de mergear
+
+Cada PR contra `main` (y cada push a `main`) dispara `fbook-pipeline-ci`, que corre `npm ci && npm run build` para los 3 microservicios. Si el type-check falla, la ejecución del pipeline falla y queda como status check del PR.
+
+No se necesita acción manual — el trigger nativo de CodePipeline V2 (filtro por branch + PR events) lo dispara solo.
+
+### CD — release por tag SemVer
+
+Convención de tags: **`<servicio>-vMAJOR.MINOR.PATCH`** (ejemplo `usuario-v1.2.0`).
+
+| Bump  | Cuándo                                          |
+| ----- | ----------------------------------------------- |
+| MAJOR | Cambios incompatibles en el contrato API        |
+| MINOR | Nuevas funcionalidades retrocompatibles         |
+| PATCH | Bugfixes retrocompatibles                       |
+
+**Cómo disparar un release:**
+
+```bash
+# Desde main, después de mergear los cambios
+git tag usuario-v1.2.0
+git push origin usuario-v1.2.0
+```
+
+Solo `fbook-pipeline-usuario` se dispara — los otros dos pipelines de CD ignoran este tag. El pipeline tarda ~5–10 min:
+1. **Source** — clona `fbook-api` desde GitHub via CodeStar Connection.
+2. **Build** — `docker build --target production` con el tag de versión, push de 4 tags a ECR (`X.Y.Z`, `X.Y`, `X`, `latest`).
+3. **Deploy** — `aws ecs update-service --force-new-deployment` + polling del rolloutState (60×30s).
+
+**Múltiples servicios en el mismo commit** está soportado:
+
+```bash
+git tag usuario-v1.2.0 amistad-v1.0.5 publicacion-v2.0.0
+git push origin --tags
+```
+
+Los 3 pipelines disparan en paralelo. Cada buildspec usa `git tag --points-at HEAD | grep "^${SERVICE}-v"` para encontrar su tag.
+
+### Monitoreo del pipeline
+
+```
+https://console.aws.amazon.com/codesuite/codepipeline/pipelines/fbook-pipeline-<servicio>/view?region=us-east-1
+```
+
+Reemplazar `<servicio>` por `usuario`, `amistad`, `publicacion` o `ci`.
+
+### Validación post-release
+
+```powershell
+# 4 tags publicadas en ECR para el último release
+aws ecr describe-images --repository-name fbook-service-usuario `
+  --query 'imageDetails[].imageTags' --output text
+
+# rolloutState del PRIMARY deployment
+aws ecs describe-services --cluster fbook-cluster --services fbook-service-usuario `
+  --query 'services[0].deployments[?status==`PRIMARY`].rolloutState' --output text
+# COMPLETED
+
+# Métricas EMF emitidas por el container
+aws cloudwatch list-metrics --namespace Fbook/Usuario `
+  --query 'Metrics[].MetricName' --output text
+# RequestCount RequestLatencyMs ErrorCount
+```
+
+Las métricas EMF tardan 1–2 min en aparecer en CloudWatch tras el primer request post-release.
+
+---
+
 ## Subir imágenes a Amazon ECR
+
+> **Este flujo es manual y se usa como fallback** (debugging del pipeline, primer bootstrap, ambiente sin CodeStar Connection). El flujo recomendado es el [release por tag](#releases-automatizados-cicd) descrito arriba.
 
 ### Paso 1 — Desplegar infraestructura con CDK
 
