@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException, ConflictException, OnModuleInit } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, ConflictException, BadRequestException, OnModuleInit } from '@nestjs/common';
 import {
   DynamoDBDocumentClient,
   GetCommand,
@@ -13,6 +13,7 @@ import {
   AdminCreateUserCommand,
   AdminSetUserPasswordCommand,
   AdminDeleteUserCommand,
+  AdminAddUserToGroupCommand,
   MessageActionType,
 } from '@aws-sdk/client-cognito-identity-provider';
 import type { components } from '@api';
@@ -76,6 +77,11 @@ export class UsuariosService implements OnModuleInit {
         Password: body.password,
         Permanent: true,
       }));
+      await this.cognitoClient.send(new AdminAddUserToGroupCommand({
+        UserPoolId: USER_POOL_ID,
+        Username: body.correo,
+        GroupName: 'user',
+      }));
     } catch (err: any) {
       if (err?.name === 'UsernameExistsException') {
         throw new ConflictException(`El correo ${body.correo} ya está registrado`);
@@ -121,10 +127,9 @@ export class UsuariosService implements OnModuleInit {
       names['#correo'] = 'correo';
       values[':correo'] = body.correo;
     }
-    if (body.password !== undefined) {
-      expressions.push('#password = :password');
-      names['#password'] = 'password';
-      values[':password'] = body.password;
+
+    if (expressions.length === 0) {
+      throw new BadRequestException('Debes proporcionar al menos un campo para actualizar');
     }
 
     const result = await this.dynamoClient.send(

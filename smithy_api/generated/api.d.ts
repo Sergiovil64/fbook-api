@@ -378,8 +378,6 @@ export interface components {
             nombre?: string;
             /** @description Nuevo correo electrónico del usuario. Máximo 40 caracteres. */
             correo?: string;
-            /** @description Nueva contraseña del usuario. Máximo 300 caracteres. */
-            password?: string;
         };
         /** @description Representa un usuario registrado en la plataforma. */
         Usuario: {
@@ -389,8 +387,6 @@ export interface components {
             nombre: string;
             /** @description Correo electrónico único del usuario. Máximo 40 caracteres. */
             correo: string;
-            /** @description Contraseña del usuario. Máximo 300 caracteres. */
-            password?: string;
             /**
              * Format: double
              * @description Fecha y hora de registro del usuario.

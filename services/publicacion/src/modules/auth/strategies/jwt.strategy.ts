@@ -24,9 +24,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException();
     }
     return {
-      userId: payload['sub'] as string,
+      userId:   payload['sub'] as string,
       username: payload['cognito:username'] as string,
-      email: payload['email'] as string,
+      email:    payload['email'] as string,
+      roles:    (payload['cognito:groups'] as string[]) ?? [],
     };
   }
 }
