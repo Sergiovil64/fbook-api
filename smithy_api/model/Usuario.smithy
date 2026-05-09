@@ -25,10 +25,6 @@ structure Usuario {
     @length(max: 40)
     correo: String
 
-    @documentation("Contraseña del usuario. Máximo 300 caracteres.")
-    @length(max: 300)
-    password: String
-
     @documentation("Fecha y hora de registro del usuario.")
     fechaRegistro: Timestamp
 }
@@ -51,7 +47,7 @@ structure CreateUsuarioInput {
     @length(max: 40)
     correo: String
 
-    @documentation("Contraseña del usuario. Máximo 300 caracteres.")
+    @documentation("Contraseña temporal del usuario. Solo se usa en la creación y no se almacena. Máximo 300 caracteres.")
     @required
     @length(max: 300)
     password: String
@@ -110,10 +106,6 @@ structure UpdateUsuarioInput {
     @documentation("Nuevo correo electrónico del usuario. Máximo 40 caracteres.")
     @length(max: 40)
     correo: String
-
-    @documentation("Nueva contraseña del usuario. Máximo 300 caracteres.")
-    @length(max: 300)
-    password: String
 }
 
 structure UpdateUsuarioOutput {
