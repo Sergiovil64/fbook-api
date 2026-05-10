@@ -37,8 +37,20 @@ export class PublicacionesService implements OnModuleInit {
         await this.dynamoClient.send(
           new CreateTableCommand({
             TableName: TABLE,
-            AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+            AttributeDefinitions: [
+              { AttributeName: 'id',        AttributeType: 'S' },
+              { AttributeName: 'idUsuario', AttributeType: 'S' },
+              { AttributeName: 'fecha',     AttributeType: 'N' },
+            ],
             KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+            GlobalSecondaryIndexes: [{
+              IndexName: 'IdUsuarioIndex',
+              KeySchema: [
+                { AttributeName: 'idUsuario', KeyType: 'HASH' },
+                { AttributeName: 'fecha',     KeyType: 'RANGE' },
+              ],
+              Projection: { ProjectionType: 'ALL' },
+            }],
             BillingMode: 'PAY_PER_REQUEST',
           }),
         );

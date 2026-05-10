@@ -47,8 +47,18 @@ export class UsuariosService implements OnModuleInit {
         await this.dynamoClient.send(
           new CreateTableCommand({
             TableName: TABLE,
-            AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+            AttributeDefinitions: [
+              { AttributeName: 'id',     AttributeType: 'S' },
+              { AttributeName: 'correo', AttributeType: 'S' },
+            ],
             KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+            GlobalSecondaryIndexes: [{
+              IndexName: 'CorreoIndex',
+              KeySchema: [
+                { AttributeName: 'correo', KeyType: 'HASH' },
+              ],
+              Projection: { ProjectionType: 'ALL' },
+            }],
             BillingMode: 'PAY_PER_REQUEST',
           }),
         );

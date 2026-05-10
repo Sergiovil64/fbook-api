@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException, BadRequestException, OnModuleInit } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, BadRequestException, ConflictException, OnModuleInit } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -11,7 +11,6 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { CreateTableCommand, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import type { components } from '@api';
-import { randomUUID } from 'crypto';
 
 const USUARIO_SERVICE_URL = process.env.USUARIO_SERVICE_URL ?? 'http://localhost:3001';
 const PUBLICACION_SERVICE_URL = process.env.PUBLICACION_SERVICE_URL ?? 'http://localhost:3003';
@@ -38,8 +37,20 @@ export class ReaccionesService implements OnModuleInit {
         await this.dynamoClient.send(
           new CreateTableCommand({
             TableName: TABLE,
-            AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+            AttributeDefinitions: [
+              { AttributeName: 'id',            AttributeType: 'S' },
+              { AttributeName: 'idPublicacion', AttributeType: 'S' },
+              { AttributeName: 'idUsuario',     AttributeType: 'S' },
+            ],
             KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+            GlobalSecondaryIndexes: [{
+              IndexName: 'IdPublicacionIndex',
+              KeySchema: [
+                { AttributeName: 'idPublicacion', KeyType: 'HASH' },
+                { AttributeName: 'idUsuario',     KeyType: 'RANGE' },
+              ],
+              Projection: { ProjectionType: 'ALL' },
+            }],
             BillingMode: 'PAY_PER_REQUEST',
           }),
         );
@@ -53,11 +64,10 @@ export class ReaccionesService implements OnModuleInit {
     await Promise.all([
       this.validateUsuarioExists(body.idUsuario),
       this.validatePublicacionExists(body.idPublicacion),
-      this.validateReaccionUnica(body.idUsuario, body.idPublicacion),
     ]);
 
     const item: Reaccion = {
-      id: randomUUID(),
+      id: `${body.idUsuario}#${body.idPublicacion}`,
       idPublicacion: body.idPublicacion,
       idUsuario: body.idUsuario,
       meGusta: body.meGusta,
@@ -70,7 +80,20 @@ export class ReaccionesService implements OnModuleInit {
       fPublicacion: Date.now(),
       estado: body.estado,
     };
-    await this.dynamoClient.send(new PutCommand({ TableName: TABLE, Item: item }));
+    try {
+      await this.dynamoClient.send(new PutCommand({
+        TableName: TABLE,
+        Item: item,
+        ConditionExpression: 'attribute_not_exists(id)',
+      }));
+    } catch (err: any) {
+      if (err?.name === 'ConditionalCheckFailedException') {
+        throw new ConflictException(
+          `El usuario con id ${body.idUsuario} ya tiene una reacción en la publicación con id ${body.idPublicacion}`,
+        );
+      }
+      throw err;
+    }
     return item;
   }
 
@@ -137,22 +160,6 @@ export class ReaccionesService implements OnModuleInit {
         ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64')
         : undefined,
     };
-  }
-
-  private async validateReaccionUnica(idUsuario: string, idPublicacion: string): Promise<void> {
-    const result = await this.dynamoClient.send(
-      new ScanCommand({
-        TableName: TABLE,
-        FilterExpression: 'idUsuario = :u AND idPublicacion = :p',
-        ExpressionAttributeValues: { ':u': idUsuario, ':p': idPublicacion },
-        Limit: 1,
-      }),
-    );
-    if (result.Items && result.Items.length > 0) {
-      throw new BadRequestException(
-        `El usuario con id ${idUsuario} ya tiene una reacción en la publicación con id ${idPublicacion}`,
-      );
-    }
   }
 
   private async validateUsuarioExists(idUsuario: string): Promise<void> {

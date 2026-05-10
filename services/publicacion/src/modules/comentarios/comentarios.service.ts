@@ -38,8 +38,20 @@ export class ComentariosService implements OnModuleInit {
         await this.dynamoClient.send(
           new CreateTableCommand({
             TableName: TABLE,
-            AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+            AttributeDefinitions: [
+              { AttributeName: 'id',            AttributeType: 'S' },
+              { AttributeName: 'idPublicacion', AttributeType: 'S' },
+              { AttributeName: 'fComentario',   AttributeType: 'N' },
+            ],
             KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+            GlobalSecondaryIndexes: [{
+              IndexName: 'IdPublicacionIndex',
+              KeySchema: [
+                { AttributeName: 'idPublicacion', KeyType: 'HASH' },
+                { AttributeName: 'fComentario',   KeyType: 'RANGE' },
+              ],
+              Projection: { ProjectionType: 'ALL' },
+            }],
             BillingMode: 'PAY_PER_REQUEST',
           }),
         );

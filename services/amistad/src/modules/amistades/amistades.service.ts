@@ -37,8 +37,30 @@ export class AmistadesService implements OnModuleInit {
         await this.dynamoClient.send(
           new CreateTableCommand({
             TableName: TABLE,
-            AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+            AttributeDefinitions: [
+              { AttributeName: 'id',         AttributeType: 'S' },
+              { AttributeName: 'idUsuario1', AttributeType: 'S' },
+              { AttributeName: 'idUsuario2', AttributeType: 'S' },
+            ],
             KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+            GlobalSecondaryIndexes: [
+              {
+                IndexName: 'IdUsuario1Index',
+                KeySchema: [
+                  { AttributeName: 'idUsuario1', KeyType: 'HASH' },
+                  { AttributeName: 'id',         KeyType: 'RANGE' },
+                ],
+                Projection: { ProjectionType: 'ALL' },
+              },
+              {
+                IndexName: 'IdUsuario2Index',
+                KeySchema: [
+                  { AttributeName: 'idUsuario2', KeyType: 'HASH' },
+                  { AttributeName: 'id',         KeyType: 'RANGE' },
+                ],
+                Projection: { ProjectionType: 'ALL' },
+              },
+            ],
             BillingMode: 'PAY_PER_REQUEST',
           }),
         );
