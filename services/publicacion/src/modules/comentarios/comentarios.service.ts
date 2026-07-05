@@ -12,6 +12,7 @@ import {
 import { CreateTableCommand, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import type { components } from '@api';
 import { randomUUID } from 'crypto';
+import { ModerationService } from '../moderation/moderation.service';
 
 const USUARIO_SERVICE_URL = process.env.USUARIO_SERVICE_URL ?? 'http://localhost:3001';
 const PUBLICACION_SERVICE_URL = process.env.PUBLICACION_SERVICE_URL ?? 'http://localhost:3003';
@@ -28,6 +29,7 @@ export class ComentariosService implements OnModuleInit {
   constructor(
     @Inject('DYNAMODB_CLIENT') private readonly dynamoClient: DynamoDBDocumentClient,
     private readonly httpService: HttpService,
+    private readonly moderationService: ModerationService,
   ) {}
 
   async onModuleInit() {
@@ -67,12 +69,17 @@ export class ComentariosService implements OnModuleInit {
       this.validatePublicacionExists(body.idPublicacion),
     ]);
 
+    const moderation = await this.moderationService.moderate(body.texto);
+
     const item: Comentario = {
       id: randomUUID(),
       idPublicacion: body.idPublicacion,
       idUsuario: body.idUsuario,
       texto: body.texto,
       fComentario: Date.now(),
+      moderationStatus: moderation.moderationStatus,
+      ...(moderation.toxicityScore !== null ? { toxicityScore: moderation.toxicityScore } : {}),
+      ...(moderation.lang !== null ? { lang: moderation.lang } : {}),
     };
     await this.dynamoClient.send(new PutCommand({ TableName: TABLE, Item: item }));
     return item;
@@ -90,13 +97,46 @@ export class ComentariosService implements OnModuleInit {
 
   async update(id: string, body: UpdateInput): Promise<Comentario> {
     await this.findOne(id);
+
+    // Se re-modera el nuevo texto para no dejar un comentario editado sin verificar.
+    const moderation = await this.moderationService.moderate(body.texto ?? '');
+
+    const names: Record<string, string> = {
+      '#texto': 'texto',
+      '#moderationStatus': 'moderationStatus',
+      '#toxicityScore': 'toxicityScore',
+      '#lang': 'lang',
+    };
+    const values: Record<string, unknown> = {
+      ':texto': body.texto,
+      ':moderationStatus': moderation.moderationStatus,
+    };
+    const sets = ['#texto = :texto', '#moderationStatus = :moderationStatus'];
+    const removes: string[] = [];
+
+    if (moderation.toxicityScore !== null) {
+      values[':toxicityScore'] = moderation.toxicityScore;
+      sets.push('#toxicityScore = :toxicityScore');
+    } else {
+      removes.push('#toxicityScore');
+    }
+    if (moderation.lang !== null) {
+      values[':lang'] = moderation.lang;
+      sets.push('#lang = :lang');
+    } else {
+      removes.push('#lang');
+    }
+
+    const updateExpression =
+      `SET ${sets.join(', ')}` + (removes.length ? ` REMOVE ${removes.join(', ')}` : '');
+
     const result = await this.dynamoClient.send(
       new UpdateCommand({
         TableName: TABLE,
         Key: { id },
-        UpdateExpression: 'SET #texto = :texto',
-        ExpressionAttributeNames: { '#texto': 'texto' },
-        ExpressionAttributeValues: { ':texto': body.texto },
+        UpdateExpression: updateExpression,
+        ExpressionAttributeNames: names,
+        ExpressionAttributeValues: values,
         ReturnValues: 'ALL_NEW',
       }),
     );
