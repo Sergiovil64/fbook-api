@@ -1,0 +1,18 @@
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+
+# Detección de idioma — modelo fastText LID (Meta/Facebook)
+# Requiere gcc/g++/python3-dev para compilar (ver Dockerfile)
+fasttext==0.9.3
+
+# Traducción español → inglés — modelo Helsinki-NLP/opus-mt-es-en (MarianMT)
+transformers==4.47.1
+sentencepiece==0.2.0
+
+# NumPy fijado a 1.x — NumPy 2.0 cambió su API de arrays y rompe PyTorch/Transformers
+numpy<2.0
+
+# NOTA: torch NO se incluye aquí porque pip con --extra-index-url
+# descarga la versión CUDA de 2 GB en vez de la CPU de 500 MB.
+# Se instala por separado en el Dockerfile con --index-url exclusivo del índice CPU.
