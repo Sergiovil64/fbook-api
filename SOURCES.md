@@ -82,3 +82,20 @@
 |--------|--------|
 | Utility types (`Awaited`, `ReturnType`, etc.) | [TypeScript Handbook — Utility types](https://www.typescriptlang.org/docs/handbook/utility-types.html) |
 | Nullish coalescing (`??`) | [MDN — Nullish coalescing](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Nullish_coalescing) |
+
+---
+
+## 8. NLP — Detección de idioma y traducción (Fase 1 ciberbullying)
+
+| Topic | Source |
+|--------|--------|
+| fastText — Language Identification | [fastText LID docs](https://fasttext.cc/docs/en/language-identification.html) |
+| fastText LID model (lid.176.ftz) | [Meta AI — fastText supervised models](https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.ftz) |
+| Helsinki-NLP/opus-mt-es-en | [HuggingFace — opus-mt-es-en](https://huggingface.co/Helsinki-NLP/opus-mt-es-en) |
+| MarianMT (arquitectura de traducción) | [HuggingFace — MarianMT](https://huggingface.co/docs/transformers/model_doc/marian) |
+| HuggingFace Transformers | [Transformers docs](https://huggingface.co/docs/transformers) |
+| FastAPI | [FastAPI docs](https://fastapi.tiangolo.com) |
+| Pydantic v2 (validación de datos) | [Pydantic docs](https://docs.pydantic.dev/latest/) |
+| PyTorch CPU-only install | [PyTorch — Get started](https://pytorch.org/get-started/locally/) |
+
+**This repo:** `services/nlp/`

@@ -37,8 +37,11 @@ fbook_api/
 ├── services/
 │   ├── usuario/             # Microservicio Usuario     → puerto 3001
 │   ├── amistad/             # Microservicio Amistad     → puerto 3002
-│   └── publicacion/         # Microservicio Publicacion → puerto 3003
-│                            #   (incluye Comentarios y Reacciones)
+│   ├── publicacion/         # Microservicio Publicacion → puerto 3003
+│   │                        #   (incluye Comentarios y Reacciones)
+│   └── nlp/                 # Microservicio NLP         → puerto 8000
+│                            #   (detección de idioma + traducción ES→EN)
+│                            #   Fase 1 — detección de ciberbullying
 └── docker-compose.dev.yml   # Desarrollo (hot-reload + DynamoDB Local)
 ```
 
@@ -49,6 +52,7 @@ fbook_api/
 | usuario        | 3001 | 8001                      |
 | amistad        | 3002 | 8002                      |
 | publicacion    | 3003 | 8003                      |
+| nlp            | 8000 | —                         |
 
 **Variables de entorno:**
 - **Desarrollo:** todas las variables las provee `docker-compose.dev.yml` — no se necesita ningún `.env` por servicio.
@@ -554,6 +558,7 @@ export TABLE_COMENTARIOS=Comentarios
 export TABLE_REACCIONES=Reacciones
 export USUARIO_SERVICE_URL=http://localhost:3001
 export PUBLICACION_SERVICE_URL=http://localhost:3003
+export NLP_SERVICE_URL=http://localhost:8000        # servicio NLP (detección de idioma + traducción)
 export COGNITO_USER_POOL_ID=us-east-1_XXXXXXXXX   # solo necesario si se prueba auth localmente
 ```
 
@@ -607,3 +612,51 @@ docker compose -f docker-compose.dev.yml logs -f service-usuario
 ```bash
 docker compose -f docker-compose.dev.yml down
 ```
+
+---
+
+## Servicio NLP — Detección de idioma y traducción
+
+Microservicio **Python/FastAPI** — Fase 1 del sistema de detección de ciberbullying.
+
+Detecta si un post o comentario está en español o inglés y lo traduce al inglés antes de guardarlo en DynamoDB. Es invocado **internamente** por `service-publicacion` — no es un endpoint público.
+
+### Modelos utilizados
+
+| Modelo | Función | Tamaño |
+|--------|---------|--------|
+| `fastText LID` (lid.176.ftz) | Detección de idioma — 176 idiomas, ~1ms por texto | ~917 KB |
+| `Helsinki-NLP/opus-mt-es-en` | Traducción español → inglés (MarianMT) | ~300 MB |
+
+### Probar el NLP en aislamiento
+
+```bash
+cd services/nlp
+docker build --target production -t fbook-nlp .
+docker run -p 8000:8000 fbook-nlp
+```
+
+Esperar el mensaje `Application startup complete.` (~15 min primera vez, los modelos se descargan durante el build). Luego abrir el Swagger interactivo:
+
+```
+http://localhost:8000/docs
+```
+
+### Health check
+
+```bash
+curl http://localhost:8000/health   # {"status":"ok"}
+```
+
+### Campos que agrega en DynamoDB
+
+Cada publicación y comentario creado incluye automáticamente:
+
+| Campo | Descripción | Ejemplo |
+|-------|-------------|---------|
+| `idioma` | Código ISO del idioma detectado | `"es"` |
+| `contenido_en` | Traducción al inglés (publicaciones) | `"You are an idiot"` |
+| `texto_en` | Traducción al inglés (comentarios) | `"You are an idiot"` |
+
+> Si el servicio NLP no está disponible, la publicación/comentario se guarda igual con `idioma: null` y `contenido_en: null` — comportamiento no bloqueante.
+
