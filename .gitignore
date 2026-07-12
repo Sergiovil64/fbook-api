@@ -26,3 +26,10 @@ Thumbs.db
 # Docker 
 docker-data/
 
+# Python 
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+services/nlp/app/__pycache__/
+services/nlp/app/models/__pycache__/
+
