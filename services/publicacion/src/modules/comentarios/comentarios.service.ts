@@ -113,11 +113,14 @@ export class ComentariosService implements OnModuleInit {
   }
 
   async update(id: string, body: UpdateInput): Promise<Comentario> {
+    if (!body.texto) {
+      throw new BadRequestException('El campo texto es requerido para actualizar un comentario');
+    }
     await this.findOne(id);
 
     // Re-analizar el nuevo texto con NLP para mantener idioma y texto_en sincronizados.
-    // Solo si texto viene en el body; si no, los campos NLP quedan a null (no bloqueante).
-    const nlp = body.texto ? await this.analizarContenidoNlp(body.texto) : null;
+    // Si el servicio NLP no responde, los campos NLP se ponen a null (no bloqueante).
+    const nlp = await this.analizarContenidoNlp(body.texto);
 
     const result = await this.dynamoClient.send(
       new UpdateCommand({

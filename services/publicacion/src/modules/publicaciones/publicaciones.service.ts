@@ -108,11 +108,14 @@ export class PublicacionesService implements OnModuleInit {
   }
 
   async update(id: string, body: UpdateInput): Promise<Publicacion> {
+    if (!body.contenido) {
+      throw new BadRequestException('El campo contenido es requerido para actualizar una publicación');
+    }
     await this.findOne(id);
 
     // Re-analizar el nuevo contenido con NLP para mantener idioma y contenido_en sincronizados.
-    // Solo si contenido viene en el body; si no, los campos NLP quedan a null (no bloqueante).
-    const nlp = body.contenido ? await this.analizarContenidoNlp(body.contenido) : null;
+    // Si el servicio NLP no responde, los campos NLP se ponen a null (no bloqueante).
+    const nlp = await this.analizarContenidoNlp(body.contenido);
 
     const result = await this.dynamoClient.send(
       new UpdateCommand({
