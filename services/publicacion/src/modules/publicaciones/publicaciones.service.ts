@@ -111,8 +111,8 @@ export class PublicacionesService implements OnModuleInit {
     await this.findOne(id);
 
     // Re-analizar el nuevo contenido con NLP para mantener idioma y contenido_en sincronizados.
-    // Si el servicio NLP no responde, los campos NLP se ponen a null (no bloqueante).
-    const nlp = await this.analizarContenidoNlp(body.contenido);
+    // Solo si contenido viene en el body; si no, los campos NLP quedan a null (no bloqueante).
+    const nlp = body.contenido ? await this.analizarContenidoNlp(body.contenido) : null;
 
     const result = await this.dynamoClient.send(
       new UpdateCommand({

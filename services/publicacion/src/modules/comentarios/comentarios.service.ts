@@ -116,8 +116,8 @@ export class ComentariosService implements OnModuleInit {
     await this.findOne(id);
 
     // Re-analizar el nuevo texto con NLP para mantener idioma y texto_en sincronizados.
-    // Si el servicio NLP no responde, los campos NLP se ponen a null (no bloqueante).
-    const nlp = await this.analizarContenidoNlp(body.texto);
+    // Solo si texto viene en el body; si no, los campos NLP quedan a null (no bloqueante).
+    const nlp = body.texto ? await this.analizarContenidoNlp(body.texto) : null;
 
     const result = await this.dynamoClient.send(
       new UpdateCommand({
