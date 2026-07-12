@@ -15,12 +15,25 @@ import { randomUUID } from 'crypto';
 
 const USUARIO_SERVICE_URL = process.env.USUARIO_SERVICE_URL ?? 'http://localhost:3001';
 
+// URL del servicio NLP — en ECS se resuelve vía Cloud Map, en dev apunta al puerto local
+const NLP_SERVICE_URL = process.env.NLP_SERVICE_URL ?? 'http://localhost:8000';
+
 type Publicacion = components['schemas']['Publicacion'];
 type CreateInput = components['schemas']['CreatePublicacionRequestContent'];
 type UpdateInput = components['schemas']['UpdatePublicacionRequestContent'];
 type ListOutput = components['schemas']['ListPublicacionesResponseContent'];
 
 const TABLE = process.env.TABLE_NAME ?? 'Publicaciones';
+
+// Tipo de la respuesta del servicio NLP (Fase 1: detección de idioma + traducción)
+interface NlpRespuesta {
+  idioma_detectado: string;
+  confianza: number;
+  texto_original: string;
+  texto_en: string;
+  traducido: boolean;
+  idioma_soportado: boolean;
+}
 
 @Injectable()
 export class PublicacionesService implements OnModuleInit {
@@ -61,16 +74,27 @@ export class PublicacionesService implements OnModuleInit {
   }
 
   async create(body: CreateInput): Promise<Publicacion> {
+    // Validar que el usuario existe antes de procesar el contenido
     await this.validateUsuarioExists(body.idUsuario);
 
-    const item: Publicacion = {
+    // Analizar el contenido con el servicio NLP:
+    // detecta el idioma y traduce al inglés si está en español.
+    // No es bloqueante: si el servicio NLP no está disponible se guarda
+    // el contenido igual (sin campos NLP) para no bloquear la publicación.
+    const nlp = await this.analizarContenidoNlp(body.contenido);
+
+    const item = {
       id: randomUUID(),
       idUsuario: body.idUsuario,
       contenido: body.contenido,
       fecha: Date.now(),
+      // Campos enriquecidos por el servicio NLP (null si el servicio no respondió)
+      idioma: nlp?.idioma_detectado ?? null,
+      contenido_en: nlp?.texto_en ?? null,
     };
+
     await this.dynamoClient.send(new PutCommand({ TableName: TABLE, Item: item }));
-    return item;
+    return item as unknown as Publicacion;
   }
 
   async findOne(id: string): Promise<Publicacion> {
@@ -85,13 +109,26 @@ export class PublicacionesService implements OnModuleInit {
 
   async update(id: string, body: UpdateInput): Promise<Publicacion> {
     await this.findOne(id);
+
+    // Re-analizar el nuevo contenido con NLP para mantener idioma y contenido_en sincronizados.
+    // Si el servicio NLP no responde, los campos NLP se ponen a null (no bloqueante).
+    const nlp = await this.analizarContenidoNlp(body.contenido);
+
     const result = await this.dynamoClient.send(
       new UpdateCommand({
         TableName: TABLE,
         Key: { id },
-        UpdateExpression: 'SET #contenido = :contenido',
-        ExpressionAttributeNames: { '#contenido': 'contenido' },
-        ExpressionAttributeValues: { ':contenido': body.contenido },
+        UpdateExpression: 'SET #contenido = :contenido, #idioma = :idioma, #contenido_en = :contenido_en',
+        ExpressionAttributeNames: {
+          '#contenido':    'contenido',
+          '#idioma':       'idioma',
+          '#contenido_en': 'contenido_en',
+        },
+        ExpressionAttributeValues: {
+          ':contenido':    body.contenido,
+          ':idioma':       nlp?.idioma_detectado ?? null,
+          ':contenido_en': nlp?.texto_en ?? null,
+        },
         ReturnValues: 'ALL_NEW',
       }),
     );
@@ -133,6 +170,25 @@ export class PublicacionesService implements OnModuleInit {
         throw new BadRequestException(`El usuario con id ${idUsuario} no existe`);
       }
       throw new BadRequestException(`No se pudo verificar el usuario con id ${idUsuario}`);
+    }
+  }
+
+  // Llama al servicio NLP para detectar el idioma y traducir al inglés.
+  // Retorna null si el servicio no está disponible, sin lanzar error,
+  // para no bloquear la creación de la publicación.
+  private async analizarContenidoNlp(texto: string): Promise<NlpRespuesta | null> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post<NlpRespuesta>(
+          `${NLP_SERVICE_URL}/v1/nlp/analyze`,
+          { texto },
+          { timeout: 10000 },
+        ),
+      );
+      return response.data;
+    } catch (err: any) {
+      console.warn('[NLP] Servicio no disponible, publicación guardada sin análisis:', err?.message);
+      return null;
     }
   }
 }

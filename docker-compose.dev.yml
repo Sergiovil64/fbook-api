@@ -85,12 +85,46 @@ services:
       TABLE_REACCIONES: Reacciones
       USUARIO_SERVICE_URL: http://service-usuario:3000
       PUBLICACION_SERVICE_URL: http://service-publicacion:3000
+      # Servicio NLP: detección de idioma + traducción al inglés (Fase 1 ciberbullying)
+      NLP_SERVICE_URL: http://service-nlp:8000
     volumes:
       - ./services/publicacion/src:/fbook_api/services/publicacion/src
       - ./smithy_api/generated:/fbook_api/smithy_api/generated
     depends_on:
-      - dynamodb-publicacion
-      - service-usuario
+      dynamodb-publicacion:
+        condition: service_started
+      service-usuario:
+        condition: service_started
+      service-nlp:
+        condition: service_healthy
+
+  # Microservicio NLP — Python/FastAPI (detección de idioma + traducción)
+  service-nlp:
+    build:
+      context: ./services/nlp
+      dockerfile: Dockerfile
+      target: development
+    container_name: fbook-service-nlp-dev
+    ports:
+      - "8000:8000"
+    environment:
+      FASTTEXT_MODEL_PATH: /app/lid.176.ftz
+      MODELO_TRADUCCION: Helsinki-NLP/opus-mt-es-en
+      TRANSFORMERS_CACHE: /app/model_cache
+    # Monta solo el código fuente (app/) para hot-reload con uvicorn --reload.
+    # Los modelos (lid.176.ftz y model_cache) viven dentro de la imagen
+    # y NO se montan: son muy pesados (~300 MB) y se descargan en el build.
+    volumes:
+      - ./services/nlp/app:/app/app
+    # Healthcheck: espera hasta que los modelos estén cargados y el servicio responda.
+    # service-publicacion no arrancará hasta que este check pase (condition: service_healthy).
+    # start_period de 60s da tiempo para que uvicorn y los modelos terminen de cargar.
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
 
 volumes:
   dynamodb_usuario_data:

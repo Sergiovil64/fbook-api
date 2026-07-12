@@ -26,6 +26,12 @@ structure Publicacion {
     @documentation("Fecha y hora en que se realizó la publicación.")
     @required
     fecha: Timestamp
+
+    @documentation("Código ISO 639-1 del idioma detectado por el servicio NLP (ej: 'es', 'en'). Null si el NLP no procesó el contenido.")
+    idioma: String
+
+    @documentation("Contenido de la publicación traducido al inglés. Igual al contenido original si ya estaba en inglés. Null si el NLP no procesó el contenido.")
+    contenido_en: String
 }
 
 list PublicacionList {

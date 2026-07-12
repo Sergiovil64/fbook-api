@@ -18,7 +18,12 @@ import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
             },
           } : {}),
         });
-        return DynamoDBDocumentClient.from(client);
+        return DynamoDBDocumentClient.from(client, {
+          marshallOptions: {
+            // Eliminar valores undefined automáticamente (los null se guardan como DynamoDB NULL)
+            removeUndefinedValues: true,
+          },
+        });
       },
     },
   ],

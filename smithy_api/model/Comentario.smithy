@@ -30,6 +30,12 @@ structure Comentario {
     @documentation("Fecha y hora en que se realizó el comentario.")
     @required
     fComentario: Timestamp
+
+    @documentation("Código ISO 639-1 del idioma detectado por el servicio NLP (ej: 'es', 'en'). Null si el NLP no procesó el comentario.")
+    idioma: String
+
+    @documentation("Texto del comentario traducido al inglés. Igual al texto original si ya estaba en inglés. Null si el NLP no procesó el comentario.")
+    texto_en: String
 }
 
 list ComentarioList {

@@ -219,6 +219,10 @@ export interface components {
              * @description Fecha y hora en que se realizó el comentario.
              */
             fComentario: number;
+            /** @description Código ISO 639-1 del idioma detectado por el servicio NLP (ej: 'es', 'en'). Null si el NLP no procesó el comentario. */
+            idioma?: string | null;
+            /** @description Texto del comentario traducido al inglés. Igual al texto original si ya estaba en inglés. Null si el NLP no procesó el comentario. */
+            texto_en?: string | null;
         };
         /** @description 409 — unique constraint violated (e.g. correo duplicado) */
         ConflictExceptionResponseContent: {
@@ -322,6 +326,10 @@ export interface components {
              * @description Fecha y hora en que se realizó la publicación.
              */
             fecha: number;
+            /** @description Código ISO 639-1 del idioma detectado por el servicio NLP (ej: 'es', 'en'). Null si el NLP no procesó el contenido. */
+            idioma?: string | null;
+            /** @description Contenido de la publicación traducido al inglés. Igual al contenido original si ya estaba en inglés. Null si el NLP no procesó el contenido. */
+            contenido_en?: string | null;
         };
         /** @description Representa la reacción de un usuario ante una publicación. */
         Reaccion: {
