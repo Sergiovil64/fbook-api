@@ -26,6 +26,15 @@ structure Publicacion {
     @documentation("Fecha y hora en que se realizó la publicación.")
     @required
     fecha: Timestamp
+
+    @documentation("Estado de moderación de cyberbullying: OK | FLAGGED | UNCHECKED. Campo de salida, calculado por el servicio.")
+    moderationStatus: String
+
+    @documentation("Score de toxicidad 0.0–1.0 devuelto por el clasificador. Ausente si moderationStatus es UNCHECKED.")
+    toxicityScore: Float
+
+    @documentation("Idioma detectado del texto original (es | en). Ausente si moderationStatus es UNCHECKED.")
+    lang: String
 }
 
 list PublicacionList {

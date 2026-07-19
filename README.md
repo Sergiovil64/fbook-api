@@ -8,21 +8,22 @@ Arquitectura de microservicios con **Smithy** (contrato API), **NestJS** (servic
 
 **Producción**
 1. [Arquitectura](#arquitectura)
-2. [Prerrequisitos producción](#prerrequisitos-producción)
-3. [Clonar el repositorio](#clonar-el-repositorio)
-4. [Releases automatizados (CI/CD)](#releases-automatizados-cicd)
-5. [Deploy manual (fallback)](#subir-imágenes-a-amazon-ecr)
-6. [Autenticación con Cognito](#autenticación-con-cognito)
+2. [Moderación de contenido con IA](#moderación-de-contenido-con-ia)
+3. [Prerrequisitos producción](#prerrequisitos-producción)
+4. [Clonar el repositorio](#clonar-el-repositorio)
+5. [Releases automatizados (CI/CD)](#releases-automatizados-cicd)
+6. [Deploy manual (fallback)](#subir-imágenes-a-amazon-ecr)
+7. [Autenticación con Cognito](#autenticación-con-cognito)
 
 **Desarrollo**
 
-6. [Prerrequisitos desarrollo](#prerrequisitos-desarrollo)
-7. [Generar el contrato API con Smithy](#generar-el-contrato-api-con-smithy)
-8. [Documentación de endpoints](#documentación-de-endpoints)
-9. [Guía para developers de servicios](#guía-para-developers-de-servicios)
-10. [Flujo cuando se modifica un modelo Smithy](#flujo-cuando-se-modifica-un-modelo-smithy)
-11. [Levantar localmente sin Docker](#levantar-localmente-sin-docker)
-12. [Levantar con Docker desarrollo (hot-reload)](#levantar-con-docker-desarrollo-hot-reload)
+8. [Prerrequisitos desarrollo](#prerrequisitos-desarrollo)
+9. [Generar el contrato API con Smithy](#generar-el-contrato-api-con-smithy)
+10. [Documentación de endpoints](#documentación-de-endpoints)
+11. [Guía para developers de servicios](#guía-para-developers-de-servicios)
+12. [Flujo cuando se modifica un modelo Smithy](#flujo-cuando-se-modifica-un-modelo-smithy)
+13. [Levantar localmente sin Docker](#levantar-localmente-sin-docker)
+14. [Levantar con Docker desarrollo (hot-reload)](#levantar-con-docker-desarrollo-hot-reload)
 
 ---
 
@@ -38,7 +39,13 @@ fbook_api/
 │   ├── usuario/             # Microservicio Usuario     → puerto 3001
 │   ├── amistad/             # Microservicio Amistad     → puerto 3002
 │   └── publicacion/         # Microservicio Publicacion → puerto 3003
-│                            #   (incluye Comentarios y Reacciones)
+│                            #   (incluye Comentarios, Reacciones y moderación IA)
+│                            #   src/modules/moderation/  → cliente de los endpoints SageMaker
+├── ml/                      # Módulo IA — detección de cyberbullying (ver sección dedicada abajo)
+│   ├── CONTRACT.md          # Contrato I/O de los 2 endpoints SageMaker (fuente de verdad)
+│   ├── translator/          # Contenedor BYOC: fastText LID + MarianMT ES→EN
+│   ├── classifier/          # Contenedor BYOC: DistilBERT binario (cyberbullying)
+│   └── training/            # Notebook + dataset de entrenamiento del clasificador
 └── docker-compose.dev.yml   # Desarrollo (hot-reload + DynamoDB Local)
 ```
 
@@ -53,6 +60,49 @@ fbook_api/
 **Variables de entorno:**
 - **Desarrollo:** todas las variables las provee `docker-compose.dev.yml` — no se necesita ningún `.env` por servicio.
 - **Producción:** ECS las inyecta desde el Task Definition configurado por CDK.
+
+---
+
+## Moderación de contenido con IA
+
+> **Estado: desplegado y verificado end-to-end en AWS real (2026-07-19).** Ver
+> `../decisions-ai-moderation.md` para el historial completo de decisiones, bugs encontrados/corregidos
+> y la tabla de resultados de la verificación.
+
+Cada post y comentario pasa por un pipeline de detección de cyberbullying **antes** de guardarse,
+orquestado por `services/publicacion/src/modules/moderation/moderation.service.ts`:
+
+```
+texto (ES/EN)
+   │
+   ▼
+fbook-translator          (SageMaker — fastText LID + MarianMT ES→EN)
+   │  { text: EN, srcLang }
+   ▼
+fbook-bullying-classifier (SageMaker — DistilBERT binario)
+   │  { label: "bullying"|"ok", score }
+   ▼
+moderationStatus = FLAGGED | OK   ·   toxicityScore = score   ·   lang = srcLang
+```
+
+- **Contrato fuente de verdad:** `ml/CONTRACT.md` — define el JSON in/out de ambos endpoints. Si se
+  reemplaza un modelo, mientras respete el contrato, **el backend no cambia**.
+- **Fail-open:** cualquier error, timeout (`MODERATION_TIMEOUT_MS`, default 4000ms) o
+  `MODERATION_ENABLED=false` guarda el contenido igual con `moderationStatus='UNCHECKED'` — nunca
+  bloquea al usuario por una falla de IA.
+- **Ambos modelos son reales**, no dummies: el traductor usa fastText (detección de idioma) +
+  Helsinki-NLP/opus-mt-es-en (MarianMT) para ES→EN; el clasificador es un DistilBERT binario
+  fine-tuneado por el equipo en `ml/training/train_classifier.ipynb` (Google Colab GPU).
+- **Infraestructura gestionada por CDK** (`fbook-cdk`, stack `FbookAiModerationStack`): construye y
+  publica ambas imágenes Docker (`DockerImageAsset`, sin push manual) y crea los 2 endpoints
+  SageMaker. Solo se despliega con `--context deployAi=true` porque son endpoints siempre activos
+  (~$50+/mes cada uno).
+- **Detalle completo, diseño y guía de deploy:** ver `ml/README.md` (este repo) y
+  `../fbook-cdk/ARCHITECTURE.md → §11 FbookAiModerationStack` (repo `fbook-cdk`).
+- **UI de prueba manual:** `web-test/` — HTML/CSS/JS sin frameworks para registrar/loguear un
+  usuario real (Cognito), publicar posts/comentarios contra el backend real en AWS y ver el
+  resultado de la moderación en vivo. Pública en S3:
+  **http://fbook-web-test-140858350333.s3-website-us-east-1.amazonaws.com** — ver `web-test/README.md`.
 
 ---
 

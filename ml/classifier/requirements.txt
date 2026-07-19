@@ -1,0 +1,12 @@
+# Servidor de inferencia BYOC (mismo patrón que el traductor).
+flask==3.0.3
+gunicorn==22.0.0
+
+# DistilBERT fine-tuneado (HuggingFace). transformers trae tokenizers y safetensors.
+transformers==4.47.1
+
+# NumPy fijado a 1.x — NumPy 2.0 rompe PyTorch/Transformers.
+numpy<2.0
+
+# NOTA: torch NO se incluye aquí; se instala aparte en el Dockerfile con el índice
+# CPU-only de PyTorch (~500 MB en vez de los ~2 GB de la build CUDA).

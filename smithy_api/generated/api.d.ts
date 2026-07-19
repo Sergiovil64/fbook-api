@@ -219,6 +219,15 @@ export interface components {
              * @description Fecha y hora en que se realizó el comentario.
              */
             fComentario: number;
+            /** @description Estado de moderación de cyberbullying: OK | FLAGGED | UNCHECKED. Campo de salida, calculado por el servicio. */
+            moderationStatus?: string;
+            /**
+             * Format: float
+             * @description Score de toxicidad 0.0–1.0 devuelto por el clasificador. Ausente si moderationStatus es UNCHECKED.
+             */
+            toxicityScore?: number;
+            /** @description Idioma detectado del texto original (es | en). Ausente si moderationStatus es UNCHECKED. */
+            lang?: string;
         };
         /** @description 409 — unique constraint violated (e.g. correo duplicado) */
         ConflictExceptionResponseContent: {
@@ -278,7 +287,7 @@ export interface components {
             nombre: string;
             /** @description Correo electrónico único del usuario. Máximo 40 caracteres. */
             correo: string;
-            /** @description Contraseña del usuario. Máximo 300 caracteres. */
+            /** @description Contraseña temporal del usuario. Solo se usa en la creación y no se almacena. Máximo 300 caracteres. */
             password: string;
         };
         /** @description 500 — unexpected server-side failure */
@@ -322,6 +331,15 @@ export interface components {
              * @description Fecha y hora en que se realizó la publicación.
              */
             fecha: number;
+            /** @description Estado de moderación de cyberbullying: OK | FLAGGED | UNCHECKED. Campo de salida, calculado por el servicio. */
+            moderationStatus?: string;
+            /**
+             * Format: float
+             * @description Score de toxicidad 0.0–1.0 devuelto por el clasificador. Ausente si moderationStatus es UNCHECKED.
+             */
+            toxicityScore?: number;
+            /** @description Idioma detectado del texto original (es | en). Ausente si moderationStatus es UNCHECKED. */
+            lang?: string;
         };
         /** @description Representa la reacción de un usuario ante una publicación. */
         Reaccion: {

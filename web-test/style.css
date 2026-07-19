@@ -1,0 +1,207 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui, Arial, sans-serif;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+  background: #f0f2f5;
+  color: #1c1e21;
+}
+
+h1 {
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  color: #65676b;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #dddfe2;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 8px 0 4px;
+}
+
+input, textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccd0d5;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  background: #1877f2;
+  color: #fff;
+  margin-top: 10px;
+}
+
+button:hover {
+  background: #145dbf;
+}
+
+button.secondary {
+  background: #e4e6eb;
+  color: #1c1e21;
+}
+
+button.secondary:hover {
+  background: #d8dade;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.tabs button {
+  margin-top: 0;
+  flex: 1;
+}
+
+.tabs button.inactive {
+  background: #e4e6eb;
+  color: #1c1e21;
+}
+
+.msg {
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.msg.error {
+  background: #fde2e1;
+  color: #a61d1d;
+}
+
+.msg.info {
+  background: #e7f0fe;
+  color: #0a56b3;
+}
+
+#topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+#topbar button {
+  margin-top: 0;
+}
+
+.post {
+  border-bottom: 1px solid #eee;
+  padding: 10px 0;
+}
+
+.post:last-child {
+  border-bottom: none;
+}
+
+.post-header {
+  font-size: 12px;
+  color: #65676b;
+  display: flex;
+  justify-content: space-between;
+}
+
+.post-body {
+  margin: 6px 0;
+  white-space: pre-wrap;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.badge.OK { background: #42b72a; }
+.badge.FLAGGED { background: #e41e3f; }
+.badge.UNCHECKED { background: #8a8d91; }
+
+.meta {
+  font-size: 11px;
+  color: #65676b;
+  margin-left: 6px;
+}
+
+.comments {
+  margin-top: 8px;
+  padding-left: 12px;
+  border-left: 2px solid #eee;
+}
+
+.comment {
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.comment-form {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.comment-form input {
+  flex: 1;
+}
+
+.comment-form button {
+  margin-top: 0;
+}
+
+.toggle-link {
+  font-size: 12px;
+  color: #1877f2;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 4px 0 0;
+  font-weight: 600;
+}
+
+.loading {
+  font-size: 12px;
+  color: #65676b;
+  font-style: italic;
+}

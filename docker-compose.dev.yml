@@ -85,6 +85,12 @@ services:
       TABLE_REACCIONES: Reacciones
       USUARIO_SERVICE_URL: http://service-usuario:3000
       PUBLICACION_SERVICE_URL: http://service-publicacion:3000
+      # Moderación de cyberbullying (SageMaker). Apagada en dev: el flujo local no depende de AWS.
+      # Con MODERATION_ENABLED=false el servicio guarda todo como moderationStatus=UNCHECKED (fail-open).
+      MODERATION_ENABLED: "false"
+      SAGEMAKER_TRANSLATOR_ENDPOINT: fbook-translator
+      SAGEMAKER_CLASSIFIER_ENDPOINT: fbook-bullying-classifier
+      MODERATION_TIMEOUT_MS: "4000"
     volumes:
       - ./services/publicacion/src:/fbook_api/services/publicacion/src
       - ./smithy_api/generated:/fbook_api/smithy_api/generated
