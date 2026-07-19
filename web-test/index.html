@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fbook — Test de moderación IA</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>Fbook — Test de moderación IA</h1>
+<p class="subtitle">
+  UI de prueba (sin framework) para comprobar cómo se moderan posts y comentarios contra el backend real en AWS.
+  Cada post/comentario muestra <code>moderationStatus</code>, <code>toxicityScore</code> y <code>lang</code> tal
+  como los calcula <code>fbook-translator</code> + <code>fbook-bullying-classifier</code> (SageMaker).
+</p>
+
+<div id="globalMsg"></div>
+
+<!-- ===== Auth ===== -->
+<section id="authSection" class="card">
+  <div class="tabs">
+    <button id="tabLogin">Iniciar sesión</button>
+    <button id="tabRegister" class="inactive">Registrarse</button>
+  </div>
+
+  <form id="loginForm">
+    <label for="loginCorreo">Correo</label>
+    <input id="loginCorreo" type="email" required placeholder="tucorreo@ejemplo.com">
+    <label for="loginPassword">Contraseña</label>
+    <input id="loginPassword" type="password" required>
+    <label for="loginUsuarioId">
+      ID de usuario (Dynamo) — opcional, solo se usa si falla la búsqueda automática por correo
+    </label>
+    <input id="loginUsuarioId" type="text" placeholder="opcional, normalmente no hace falta completarlo">
+    <button type="submit">Entrar</button>
+  </form>
+
+  <form id="registerForm" class="hidden">
+    <label for="regNombre">Nombre</label>
+    <input id="regNombre" type="text" required maxlength="30">
+    <label for="regCorreo">Correo</label>
+    <input id="regCorreo" type="email" required maxlength="40">
+    <label for="regPassword">Contraseña (mín. 8 caracteres, con mayúscula, minúscula y número)</label>
+    <input id="regPassword" type="password" required minlength="8"
+           pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}"
+           title="Mínimo 8 caracteres, con al menos una mayúscula, una minúscula y un número">
+    <button type="submit">Registrarme</button>
+  </form>
+</section>
+
+<!-- ===== App ===== -->
+<section id="appSection" class="hidden">
+  <div id="topbar" class="card">
+    <div>Sesión: <strong id="whoAmI"></strong></div>
+    <div>
+      <button class="secondary" id="refreshBtn">Refrescar feed</button>
+      <button class="secondary" id="logoutBtn">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <label for="postContenido">Nueva publicación (probá texto benigno o tóxico, en español o inglés)</label>
+    <textarea id="postContenido" maxlength="300" placeholder="Escribe algo..."></textarea>
+    <button id="postBtn">Publicar</button>
+    <div id="postMsg"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">Feed (todas las publicaciones)</h3>
+    <div id="feed"></div>
+  </div>
+</section>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

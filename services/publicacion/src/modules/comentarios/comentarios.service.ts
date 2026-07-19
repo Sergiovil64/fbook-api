@@ -13,9 +13,9 @@ import { CreateTableCommand, DescribeTableCommand } from '@aws-sdk/client-dynamo
 import type { components } from '@api';
 import { randomUUID } from 'crypto';
 import { ModerationService } from '../moderation/moderation.service';
+import { PublicacionesService } from '../publicaciones/publicaciones.service';
 
 const USUARIO_SERVICE_URL = process.env.USUARIO_SERVICE_URL ?? 'http://localhost:3001';
-const PUBLICACION_SERVICE_URL = process.env.PUBLICACION_SERVICE_URL ?? 'http://localhost:3003';
 
 type Comentario = components['schemas']['Comentario'];
 type CreateInput = components['schemas']['CreateComentarioRequestContent'];
@@ -30,6 +30,7 @@ export class ComentariosService implements OnModuleInit {
     @Inject('DYNAMODB_CLIENT') private readonly dynamoClient: DynamoDBDocumentClient,
     private readonly httpService: HttpService,
     private readonly moderationService: ModerationService,
+    private readonly publicacionesService: PublicacionesService,
   ) {}
 
   async onModuleInit() {
@@ -179,13 +180,14 @@ export class ComentariosService implements OnModuleInit {
     }
   }
 
+  // Llamada en-proceso (no HTTP): Comentarios y Publicaciones viven en la misma app Nest
+  // (services/publicacion). Un HTTP call a sí misma fallaría siempre con 401, porque
+  // PublicacionesController exige JwtAuthGuard y esta validación interna no lleva token.
   private async validatePublicacionExists(idPublicacion: string): Promise<void> {
     try {
-      await firstValueFrom(
-        this.httpService.get(`${PUBLICACION_SERVICE_URL}/v1/publicaciones/${idPublicacion}`),
-      );
+      await this.publicacionesService.findOne(idPublicacion);
     } catch (err: any) {
-      if (err?.response?.status === 404) {
+      if (err instanceof NotFoundException) {
         throw new BadRequestException(`La publicación con id ${idPublicacion} no existe`);
       }
       throw new BadRequestException(`No se pudo verificar la publicación con id ${idPublicacion}`);

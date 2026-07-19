@@ -18,7 +18,11 @@ import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
             },
           } : {}),
         });
-        return DynamoDBDocumentClient.from(client);
+        return DynamoDBDocumentClient.from(client, {
+          marshallOptions: {
+            removeUndefinedValues: true,
+          },
+        });
       },
     },
   ],

@@ -6,6 +6,7 @@ import {
   UpdateCommand,
   DeleteCommand,
   ScanCommand,
+  QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { CreateTableCommand, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
 import {
@@ -69,7 +70,7 @@ export class UsuariosService implements OnModuleInit {
   }
 
   async create(body: CreateInput): Promise<Usuario> {
-    // 1. Register in Cognito
+    // 1. Register in Cognito (sin password todavía)
     try {
       await this.cognitoClient.send(new AdminCreateUserCommand({
         UserPoolId: USER_POOL_ID,
@@ -81,6 +82,19 @@ export class UsuariosService implements OnModuleInit {
           { Name: 'email_verified', Value: 'true' },
         ],
       }));
+    } catch (err: any) {
+      if (err?.name === 'UsernameExistsException') {
+        throw new ConflictException(`El correo ${body.correo} ya está registrado`);
+      }
+      throw err;
+    }
+
+    // 2. Password + grupo + perfil en Dynamo. Si algo de esto falla, el usuario de Cognito
+    // creado en el paso 1 queda a medias (sin password permanente, sin perfil en Dynamo) y
+    // cualquier reintento con el mismo correo fallaría para siempre con 409 (UsernameExistsException),
+    // aunque el registro nunca se completó. Por eso hacemos rollback (borrar el usuario de Cognito)
+    // ante cualquier error en este bloque.
+    try {
       await this.cognitoClient.send(new AdminSetUserPasswordCommand({
         UserPoolId: USER_POOL_ID,
         Username: body.correo,
@@ -92,22 +106,29 @@ export class UsuariosService implements OnModuleInit {
         Username: body.correo,
         GroupName: 'user',
       }));
+
+      const usuario: Usuario = {
+        id: randomUUID(),
+        nombre: body.nombre,
+        correo: body.correo,
+        fechaRegistro: Date.now(),
+      };
+      await this.dynamoClient.send(new PutCommand({ TableName: TABLE, Item: usuario }));
+      return usuario;
     } catch (err: any) {
-      if (err?.name === 'UsernameExistsException') {
-        throw new ConflictException(`El correo ${body.correo} ya está registrado`);
+      await this.cognitoClient.send(new AdminDeleteUserCommand({
+        UserPoolId: USER_POOL_ID,
+        Username: body.correo,
+      })).catch(() => { /* best effort: si esto falla igual reportamos el error original */ });
+
+      if (err?.name === 'InvalidPasswordException' || err?.name === 'InvalidParameterException') {
+        throw new BadRequestException(
+          'La contraseña no cumple la política requerida: mínimo 8 caracteres, con al menos ' +
+          'una mayúscula, una minúscula y un número.',
+        );
       }
       throw err;
     }
-
-    // 2. Persist profile in DynamoDB (password not stored)
-    const usuario: Usuario = {
-      id: randomUUID(),
-      nombre: body.nombre,
-      correo: body.correo,
-      fechaRegistro: Date.now(),
-    };
-    await this.dynamoClient.send(new PutCommand({ TableName: TABLE, Item: usuario }));
-    return usuario;
   }
 
   async findOne(id: string): Promise<Usuario> {
@@ -118,6 +139,25 @@ export class UsuariosService implements OnModuleInit {
       throw new NotFoundException(`Usuario con id ${id} no encontrado`);
     }
     return result.Item as Usuario;
+  }
+
+  // Resuelve el id (Dynamo) de un usuario a partir de su correo (login vía Cognito solo
+  // devuelve el JWT, no el id de Dynamo — este lookup evita depender de que el cliente
+  // recuerde el id manualmente, p. ej. entre navegadores/dispositivos distintos).
+  async findByCorreo(correo: string): Promise<Usuario> {
+    const result = await this.dynamoClient.send(
+      new QueryCommand({
+        TableName: TABLE,
+        IndexName: 'CorreoIndex',
+        KeyConditionExpression: 'correo = :correo',
+        ExpressionAttributeValues: { ':correo': correo },
+        Limit: 1,
+      }),
+    );
+    if (!result.Items || result.Items.length === 0) {
+      throw new NotFoundException(`Usuario con correo ${correo} no encontrado`);
+    }
+    return result.Items[0] as Usuario;
   }
 
   async update(id: string, body: UpdateInput): Promise<Usuario> {

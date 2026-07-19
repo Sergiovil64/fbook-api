@@ -67,6 +67,7 @@ Classifies **English** text as cyberbullying or not. Trained on the English data
 
 Per-invocation timeout: `MODERATION_TIMEOUT_MS` (default 4000 ms).
 
-> When switching from dummy → real model, **the backend is not touched**: just replace the image
-> in the corresponding ECR repo (`fbook-ml-translator` / `fbook-ml-classifier`) and update the
-> endpoint, as long as the JSON in/out keeps following this contract.
+> When swapping a model, **the backend is not touched**: replace the inference container in
+> `ml/<name>/` (the translator lives in `ml/translator/`, the classifier in `ml/classifier/`) and run
+> `cdk deploy` — CDK rebuilds and pushes the image and updates the endpoint, as long as the JSON
+> in/out keeps following this contract.

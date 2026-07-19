@@ -26,3 +26,8 @@ Thumbs.db
 # Docker 
 docker-data/
 
+# ML — trained model artifacts (large binaries, baked into the Docker image at deploy time,
+# not committed to git). See ml/classifier/README.md.
+ml/classifier/model/*
+!ml/classifier/model/.gitkeep
+

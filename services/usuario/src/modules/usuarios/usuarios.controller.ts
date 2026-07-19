@@ -30,6 +30,15 @@ export class UsuariosController {
     return this.usuariosService.findAll(nextToken, maxResults);
   }
 
+  // Público: resolver el id (Dynamo) de un usuario a partir de su correo. Necesario porque el
+  // login vía Cognito (InitiateAuth) solo devuelve el JWT, no el id de Dynamo — sin este endpoint
+  // el cliente tendría que recordarlo por su cuenta (p. ej. localStorage), lo que se rompe entre
+  // navegadores/dispositivos.
+  @Get('by-correo/:correo')
+  findByCorreo(@Param('correo') correo: string) {
+    return this.usuariosService.findByCorreo(correo);
+  }
+
   // Público: ver perfil de un usuario (usado también por otros microservicios)
   @Get(':id')
   findOne(@Param('id') id: string) {
